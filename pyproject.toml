@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "flexcoder"
+version = "0.1.0"
+description = ""
+authors = ["Gyarmathy <bulint1@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.10"
+nltk = "^3.5"
+numpy = "^1.20.1"
+torch = "^1.8.0"
+hypothesis = "^6.8.1"
+pydotplus = "^2.0.2"
+Sphinx = "^3.5.3"
+sphinx-rtd-theme = "^0.5.1"
+pytorch-lightning = "^1.2.7"
+scipy = "^1.6.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.2"
+mypy = "^0.800"
+black = {version = "^20.8b1", allow-prereleases = true}
+rope = "^0.18.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

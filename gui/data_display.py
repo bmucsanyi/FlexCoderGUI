@@ -1,6 +1,7 @@
 from typing import Optional
 
 import matplotlib
+import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 from src.grammar import DEFINITIONS, ABBREVATION_DICT
@@ -36,7 +37,7 @@ class DataDisplay(QWidget):
     def populate_diagram(self, statistics: dict):
         self.mpl_canvas.axes.clear()
         self.mpl_canvas.axes.set_title("Distribution of function types")
-        self.mpl_canvas.axes.bar(*zip(*statistics.items()))
+        self.mpl_canvas.axes.bar(*zip(*statistics.items()), color='green')
 
         for tick in self.mpl_canvas.axes.get_xticklabels():
             tick.set_rotation(90)

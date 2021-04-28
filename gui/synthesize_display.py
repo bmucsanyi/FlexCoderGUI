@@ -1,5 +1,6 @@
 from typing import Optional
 
+from PyQt5.QtGui import QFont, QPainter
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import (
     QWidget,
@@ -8,7 +9,8 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
+from PyQt5.QtCore import Qt, QSize
 
 
 class SynthesizeDisplay(QWidget):
@@ -21,9 +23,18 @@ class SynthesizeDisplay(QWidget):
 
         self.input_label = QLabel("Awaiting inputs...", self)
         self.input_label.setAlignment(Qt.AlignCenter)
+        self.input_label.setFixedHeight(50)
+        self.input_label.setFont(QFont("Roboto", 15))
+
         self.output_label = QLabel("Awaiting outputs...", self)
         self.output_label.setAlignment(Qt.AlignCenter)
+        self.output_label.setFixedHeight(50)
+        self.output_label.setFont(QFont("Roboto", 15))
+
         self.image_label = QLabel(parent=self)
+        self.image_label.setAlignment(Qt.AlignCenter)
+        # self.image_label = QSvgWidget()
+
         self.horizontal_layout = QHBoxLayout()
         self.back_button = QPushButton(parent=self)
         back_icon = QIcon("gui/images/left_arrow.png")
@@ -37,8 +48,9 @@ class SynthesizeDisplay(QWidget):
         self.forward_button.setEnabled(False)
         self.forward_button.clicked.connect(self.next_image)
 
-        self.image_label.setScaledContents(True)
+        # self.image_label.setScaledContents(True)
         self.image_label.setText("Awaiting results...")
+        self.image_label.setFont(QFont("Roboto", 15))
 
         self.horizontal_layout.addWidget(self.back_button)
         self.horizontal_layout.addWidget(self.forward_button)
@@ -70,6 +82,7 @@ class SynthesizeDisplay(QWidget):
         self.output_label.setText(f"Output: {output[0]}")
         self.image_label.setText("")
         pm = QPixmap(path)
+        pm = pm.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.image_label.setPixmap(pm)
 
     def previous_image(self):

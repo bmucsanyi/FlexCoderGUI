@@ -847,7 +847,11 @@ class DataWorker(QObject):
                     json.dump(sample, f)
                     f.write("\n")
 
-                self.bar_advanced.emit(math.ceil(100 * i / self.args.number))
+                self.bar_advanced.emit(
+                    math.ceil(
+                        100 * i / (self.args.number * self.args.num_samples_per_comp)
+                    )
+                )
             self.finished.emit()
 
 

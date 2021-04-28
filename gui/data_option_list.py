@@ -11,7 +11,10 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QMessageBox,
     QFileDialog,
+    QSizePolicy,
 )
+
+from PyQt5.QtGui import QFont
 
 from src.generate_utils import DataWorker, Arguments
 
@@ -40,6 +43,10 @@ class DataOptionList(QWidget):
 
         self.select_path_button = QPushButton("Select path", self)
         self.select_path_button.clicked.connect(self.path_clicked)
+        self.select_path_button.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
+        self.select_path_button.setFixedHeight(30)
 
         self.num_functions_label, self.num_functions_slider = self.set_up_section(
             "Number of functions", 1, 1, 6
@@ -56,6 +63,9 @@ class DataOptionList(QWidget):
         ) = self.set_up_section("Number of unique inputs", 1, 1, 5)
         self.generate_button = QPushButton("Generate", self)
         self.generate_button.clicked.connect(self.start_generating)
+        self.generate_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.generate_button.setFixedHeight(50)
+        self.generate_button.setFont(QFont("Roboto", 15))
 
         self.vertical_layout.addWidget(self.is_test_checkbox)
         self.vertical_layout.addWidget(self.num_comps_line_edit)

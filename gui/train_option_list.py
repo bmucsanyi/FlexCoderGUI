@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QMessageBox,
 )
+from PyQt5.QtGui import QFont
 from torch.cuda import device_count
 
 
@@ -94,6 +95,10 @@ class TrainOptionList(QWidget):
         self.vertical_layout.addWidget(self.epochs_slider)
         self.vertical_layout.addWidget(self.select_path_button)
         self.vertical_layout.addWidget(self.train_button)
+
+        self.train_button.setFixedHeight(50)
+        self.train_button.setFont(QFont("Roboto", 15))
+        self.setFixedWidth(300)
 
         # self.show()
 

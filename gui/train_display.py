@@ -44,6 +44,7 @@ class TrainDisplay(QWidget):
 
         self.console = QTextEdit()
         self.console.setReadOnly(True)
+        self.console.setTextInteractionFlags(Qt.NoTextInteraction)
         # self.console.ensureCursorVisible()
         # self.console.setLineWrapColumnOrWidth(500)
         # self.console.setLineWrapMode(QTextEdit.FixedPixelWidth)

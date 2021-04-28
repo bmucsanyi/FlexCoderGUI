@@ -47,7 +47,8 @@ class CompOccurrence:
 
 
 def visualize(comp: "Composition", filename: str = "output.png") -> None:
-    graph = pydot.Dot("my_graph", graph_type="graph", bgcolor="white")
+    graph = pydot.Dot("my_graph", graph_type="graph", bgcolor="#303030")
+    graph.set_node_defaults(color='white', fontname='Courier', fontsize='12', fontcolor='white')
 
     if len(comp) > 1:
         comp_occurrences = [CompOccurrence(comp=comp, occurrences=1)]
@@ -110,7 +111,7 @@ def visualize_helper(comp: "Composition", graph, comp_occurrences):
 
         first_str = f"{comp_string} v{comp.id}.{par_occurrence}"
         second_str = f"{child_string} v{child.id}.{ch_occurrence}"
-        graph.add_edge(pydot.Edge(first_str, second_str, color="purple"))
+        graph.add_edge(pydot.Edge(first_str, second_str, color="white"))
 
         visualize_helper(child, graph, comp_occurrences)
 

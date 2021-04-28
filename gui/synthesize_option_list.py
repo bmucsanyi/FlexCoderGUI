@@ -2,6 +2,7 @@ import json
 from typing import Optional
 from ast import literal_eval
 
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLineEdit,
     QMessageBox,
+QSizePolicy
 )
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
@@ -41,14 +43,23 @@ class SynthesizeOptionList(QWidget):
         self.select_path_button.clicked.connect(self.path_clicked)
 
         self.input_label = QLabel("Input(s)")
+        self.input_label.setFixedHeight(30)
+        self.input_label.setFont(QFont("Roboto", 15))
+
         self.input_line_edit = QLineEdit()
         self.input_line_edit.textChanged.connect(self.text_changed)
+
         self.output_label = QLabel("Output(s)")
+        self.output_label.setFixedHeight(30)
+        self.output_label.setFont(QFont("Roboto", 15))
         self.output_line_edit = QLineEdit()
         self.output_line_edit.textChanged.connect(self.text_changed)
 
         self.synthesize_button = QPushButton("Start synthesizing", self)
         self.synthesize_button.clicked.connect(self.start_synthesizing)
+        self.synthesize_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.synthesize_button.setFixedHeight(50)
+        self.synthesize_button.setFont(QFont("Roboto", 15))
 
         self.vertical_layout.addWidget(self.select_model_button)
         self.vertical_layout.addWidget(self.select_dataset_button)
@@ -60,6 +71,8 @@ class SynthesizeOptionList(QWidget):
         self.vertical_layout.addWidget(self.synthesize_button)
 
         self.setLayout(self.vertical_layout)
+
+        self.setFixedWidth(250)
 
         # self.show()
 

@@ -21,6 +21,7 @@ from evaluator import SynthesizeWorker
 # noinspection PyUnresolvedReferences
 class SynthesizeOptionList(QWidget):
     bar_advanced = pyqtSignal(int)
+    started_synthesizing = pyqtSignal()
     finished_synthesizing = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -203,6 +204,7 @@ class SynthesizeOptionList(QWidget):
         self.thread.start()
         self.worker.start_signal.emit()
         self.synthesize_button.setEnabled(False)
+        self.started_synthesizing.emit()
 
     @pyqtSlot()
     def finish_synthesizing(self):

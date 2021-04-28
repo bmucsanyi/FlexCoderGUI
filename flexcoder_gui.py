@@ -2,6 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSlot
 
 from gui.data_content import DataContent
 from gui.synthesize_content import SynthesizeContent
@@ -19,8 +20,14 @@ class BaseContainer(QWidget):
         self.tab_bar.synthesis_button.clicked.connect(self.switch_to_synthesis)
 
         self.data_content = DataContent(self)
+        self.data_content.started_generating.connect(self.disable_for_generating)
+        self.data_content.finished_generating.connect(self.enable_for_generating)
         self.train_content = TrainContent(self)
+        self.train_content.started_training.connect(self.disable_for_training)
+        self.train_content.finished_training.connect(self.enable_for_training)
         self.synthesize_content = SynthesizeContent(self)
+        self.synthesize_content.started_synthesizing.connect(self.disable_for_synthesis)
+        self.synthesize_content.finished_synthesizing.connect(self.enable_for_synthesis)
 
         self.vertical_layout.addWidget(self.tab_bar)
         self.vertical_layout.addWidget(self.data_content)
@@ -59,6 +66,56 @@ class BaseContainer(QWidget):
         for other in other_contents:
             other.setHidden(True)
 
+        self.set_normal_style_sheet(class_str)
+
+    def set_enabled_tab_bar(self, is_enabled):
+        self.tab_bar.generating_button.setEnabled(is_enabled)
+        self.tab_bar.training_button.setEnabled(is_enabled)
+        self.tab_bar.synthesis_button.setEnabled(is_enabled)
+
+    @pyqtSlot()
+    def disable_for_generating(self):
+        self.set_enabled_tab_bar(False)
+
+        self.set_disabled_style_sheet(
+            "GeneratingButton", "TrainingButton", "SynthesizeButton"
+        )
+
+    @pyqtSlot()
+    def disable_for_training(self):
+        self.set_enabled_tab_bar(False)
+
+        self.set_disabled_style_sheet(
+            "TrainingButton", "GeneratingButton", "SynthesizeButton"
+        )
+
+    @pyqtSlot()
+    def disable_for_synthesis(self):
+        self.set_enabled_tab_bar(False)
+
+        self.set_disabled_style_sheet(
+            "SynthesizeButton", "TrainingButton", "GeneratingButton"
+        )
+
+    @pyqtSlot()
+    def enable_for_generating(self):
+        self.set_enabled_tab_bar(True)
+
+        self.set_normal_style_sheet("GeneratingButton")
+
+    @pyqtSlot()
+    def enable_for_training(self):
+        self.set_enabled_tab_bar(True)
+
+        self.set_normal_style_sheet("TrainingButton")
+
+    @pyqtSlot()
+    def enable_for_synthesis(self):
+        self.set_enabled_tab_bar(True)
+
+        self.set_normal_style_sheet("SynthesizeButton")
+
+    def set_normal_style_sheet(self, cls_1):
         self.setStyleSheet(
             f"""
             QWidget {{
@@ -86,8 +143,54 @@ class BaseContainer(QWidget):
                 background-color: white;
                 color: black;
             }}
-            {class_str}:!hover {{
+            {cls_1}:!hover {{
                 background-color:#40855b;
+            }}
+            QSlider::handle:horizontal {{
+                background-color:#34655b;
+            }}
+            QSlider::handle:horizontal:hover {{
+                background-color:#40ab5b;
+            }}
+            """
+        )
+
+    def set_disabled_style_sheet(self, cls_1, cls_2, cls_3):
+        self.setStyleSheet(
+            f"""
+            QWidget {{
+                background: #303030;
+                color: white;
+            }}
+            QPushButton {{
+                padding:0.3em 1.2em;
+                margin:0 0.3em 0.3em 0;
+                border-radius:10px;
+                text-decoration:none;
+                font-family:'Roboto',sans-serif;
+                font-weight:300;
+                color:#FFFFFF;
+                background-color:#34655b;
+            }}
+            QPushButton:hover {{
+                background-color:#40ab5b;
+            }}
+            TabButton {{
+                border-bottom-left-radius:0px;
+                border-bottom-right-radius:0px;
+            }}
+            QLineEdit {{
+                background-color: white;
+                color: black;
+            }}
+            {cls_1}:!hover {{
+                background-color:#40855b;
+            }}
+            {cls_2}:!hover {{
+                background-color:#a1a1a1
+            }}
+            {cls_3}:!hover {{
+                background-color:#a1a1a1
             }}
             QSlider::handle:horizontal {{
                 background-color:#34655b;

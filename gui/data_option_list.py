@@ -21,6 +21,7 @@ from src.generate_utils import DataWorker, Arguments
 # noinspection PyUnresolvedReferences
 class DataOptionList(QWidget):
     bar_advanced = pyqtSignal(int)
+    started_generating = pyqtSignal()
     finished_generating = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -150,6 +151,7 @@ class DataOptionList(QWidget):
         self.thread.start()
         self.worker.start_signal.emit()
         self.generate_button.setEnabled(False)
+        self.started_generating.emit()
 
     @pyqtSlot()
     def finish_generating(self):

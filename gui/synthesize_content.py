@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QProgressBar
 
 from gui.synthesize_display import SynthesizeDisplay
@@ -9,6 +9,9 @@ from gui.synthesize_option_list import SynthesizeOptionList
 
 
 class SynthesizeContent(QWidget):
+    started_synthesizing = pyqtSignal()
+    finished_synthesizing = pyqtSignal()
+
     def __init__(
         self, parent: Optional[QWidget] = None,
     ):
@@ -17,6 +20,12 @@ class SynthesizeContent(QWidget):
         self.vertical_layout = QVBoxLayout(self)
         self.upper_layout = QHBoxLayout()
         self.synthesize_option_list = SynthesizeOptionList(self)
+        self.synthesize_option_list.started_synthesizing.connect(pyqtSlot()(
+            lambda: self.started_synthesizing.emit()
+        ))
+        self.synthesize_option_list.finished_synthesizing.connect(pyqtSlot()(
+            lambda: self.finished_synthesizing.emit()
+        ))
         self.synthesize_display = SynthesizeDisplay(self)
 
         self.upper_layout.addWidget(self.synthesize_option_list)

@@ -46,6 +46,8 @@ class TrainWorker(QObject):
 # noinspection PyUnresolvedReferences
 class TrainOptionList(QWidget):
     can_write = pyqtSignal(str)
+    started_training = pyqtSignal()
+    finished_training = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -176,6 +178,7 @@ class TrainOptionList(QWidget):
         self.worker.finished.connect(self.reactivate_button)
         self.thread.start()
         self.worker.start_signal.emit()
+        self.started_training.emit()
 
     @pyqtSlot(str)
     def pass_string(self, value: str):
@@ -188,6 +191,7 @@ class TrainOptionList(QWidget):
         self.thread.wait()
         self.thread = None
         self.train_button.setEnabled(True)
+        self.finished_training.emit()
 
     @pyqtSlot(int)
     def checkbox_checked(self, _: int):

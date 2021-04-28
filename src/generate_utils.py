@@ -849,6 +849,10 @@ class DataWorker(QObject):
                         100 * i / (self.args.number * self.args.num_samples_per_comp)
                     )
                 )
+
+                # if self.shutdown:
+                #     self.finished.emit()
+                #     return
             self.finished.emit()
 
 

@@ -1,7 +1,8 @@
 import json
-from typing import Optional
 from ast import literal_eval
+from typing import Optional
 
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
@@ -11,13 +12,13 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLineEdit,
     QMessageBox,
-QSizePolicy
+    QSizePolicy,
 )
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
 from evaluator import SynthesizeWorker
 
 
+# noinspection PyUnresolvedReferences
 class SynthesizeOptionList(QWidget):
     bar_advanced = pyqtSignal(int)
     finished_synthesizing = pyqtSignal()
@@ -57,7 +58,9 @@ class SynthesizeOptionList(QWidget):
 
         self.synthesize_button = QPushButton("Start synthesizing", self)
         self.synthesize_button.clicked.connect(self.start_synthesizing)
-        self.synthesize_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.synthesize_button.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         self.synthesize_button.setFixedHeight(50)
         self.synthesize_button.setFont(QFont("Roboto", 15))
 

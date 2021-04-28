@@ -17,8 +17,14 @@ MOCK_DICT = {ABBREVATION_DICT[func_name]: 0 for func_name in DEFINITIONS[:-1]}
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self):
         fig = Figure()
-        self.axes = fig.add_subplot(111)
         super().__init__(fig)
+        fig.set_facecolor("#303030")
+        self.axes = fig.add_subplot(111)
+        self.axes.set_facecolor("#303030")
+        matplotlib.rcParams['text.color'] = 'white'
+        matplotlib.rcParams['xtick.color'] = 'white'
+        matplotlib.rcParams['ytick.color'] = 'white'
+        matplotlib.rcParams['axes.labelcolor'] = 'white'
 
 
 class DataDisplay(QWidget):
@@ -35,6 +41,9 @@ class DataDisplay(QWidget):
         # self.show()
 
     def populate_diagram(self, statistics: dict):
+        plt.rcParams.update({
+            "figure.facecolor": (0.18823529411, 0.18823529411, 0.18823529411, 1.)
+        })
         self.mpl_canvas.axes.clear()
         self.mpl_canvas.axes.set_title("Distribution of function types")
         self.mpl_canvas.axes.bar(*zip(*statistics.items()), color='green')

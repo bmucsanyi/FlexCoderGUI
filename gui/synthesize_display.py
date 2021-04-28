@@ -81,9 +81,15 @@ class SynthesizeDisplay(QWidget):
         self.input_label.setText(f"Input: {input_}")
         self.output_label.setText(f"Output: {output[0]}")
         self.image_label.setText("")
-        pm = QPixmap(path)
-        pm = pm.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.image_label.setPixmap(pm)
+        if path is not None:
+            pm = QPixmap(path)
+            pm = pm.scaled(
+                self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            self.image_label.setPixmap(pm)
+        else:
+            self.image_label.setPixmap(QPixmap(None))
+            self.image_label.setText("No solution for the given problem.")
 
     def previous_image(self):
         self.image_index -= 1

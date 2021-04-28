@@ -1,7 +1,6 @@
 from typing import Optional
 
 import matplotlib
-import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 from src.grammar import DEFINITIONS, ABBREVATION_DICT
@@ -21,10 +20,10 @@ class MplCanvas(FigureCanvasQTAgg):
         fig.set_facecolor("#303030")
         self.axes = fig.add_subplot(111)
         self.axes.set_facecolor("#303030")
-        matplotlib.rcParams['text.color'] = 'white'
-        matplotlib.rcParams['xtick.color'] = 'white'
-        matplotlib.rcParams['ytick.color'] = 'white'
-        matplotlib.rcParams['axes.labelcolor'] = 'white'
+        matplotlib.rcParams["text.color"] = "white"
+        matplotlib.rcParams["xtick.color"] = "white"
+        matplotlib.rcParams["ytick.color"] = "white"
+        matplotlib.rcParams["axes.labelcolor"] = "white"
 
 
 class DataDisplay(QWidget):
@@ -38,21 +37,12 @@ class DataDisplay(QWidget):
         self.vertical_layout.addWidget(self.mpl_canvas)
 
         self.setLayout(self.vertical_layout)
-        # self.show()
 
     def populate_diagram(self, statistics: dict):
-        plt.rcParams.update({
-            "figure.facecolor": (0.18823529411, 0.18823529411, 0.18823529411, 1.)
-        })
         self.mpl_canvas.axes.clear()
         self.mpl_canvas.axes.set_title("Distribution of function types")
-        self.mpl_canvas.axes.bar(*zip(*statistics.items()), color='green')
+        self.mpl_canvas.axes.bar(*zip(*statistics.items()), color="green")
 
         for tick in self.mpl_canvas.axes.get_xticklabels():
             tick.set_rotation(90)
         self.mpl_canvas.draw()
-
-
-# app = QApplication(sys.argv)
-# w = TrainDisplay()
-# app.exec_()

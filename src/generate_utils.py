@@ -181,7 +181,6 @@ def sample_generator(args: Arguments):
 
     with open("statistics.json", "w") as f:
         json.dump(comp_dict.statistics(), f)
-    print(comp_dict)
 
     if args.inputs == args.unique_inputs:
         for comp in comp_dict.target:
@@ -840,9 +839,7 @@ class DataWorker(QObject):
     @pyqtSlot()
     def process(self):
         with open(self.args.filename, "w") as f:
-            print(self.args.number)
             for i, sample_list in enumerate(sample_generator(self.args)):
-                print(i)
                 for sample in sample_list:
                     json.dump(sample, f)
                     f.write("\n")

@@ -1,6 +1,7 @@
 from typing import Optional
 
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -13,8 +14,6 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QSizePolicy,
 )
-
-from PyQt5.QtGui import QFont
 
 from src.generate_utils import DataWorker, Arguments
 
@@ -84,8 +83,6 @@ class DataOptionList(QWidget):
 
         self.setLayout(self.vertical_layout)
 
-        # self.show()
-
     def set_up_section(self, text, single_step, minimum, maximum):
         label = QLabel(text + f": {minimum}", self)
         slider = QSlider(Qt.Horizontal, self)
@@ -95,14 +92,16 @@ class DataOptionList(QWidget):
         slider.setSingleStep(single_step)
 
         slider.valueChanged.connect(
-            lambda value: label.setText(
-                " ".join(label.text().split()[:-1]) + " " + str(value)
+            pyqtSlot()(
+                lambda value: label.setText(
+                    " ".join(label.text().split()[:-1]) + " " + str(value)
+                )
             )
         )
 
         return label, slider
 
-    def start_generating(self):  # TODO: error management
+    def start_generating(self):
         num_comps_string = self.num_comps_line_edit.text()
         if not num_comps_string.isnumeric() or num_comps_string == "0":
             warning_screen = QMessageBox()
@@ -119,6 +118,16 @@ class DataOptionList(QWidget):
             warning_screen.setFixedSize(500, 200)
             warning_screen.critical(
                 self, "Error", "No filename provided. Please select the desired path."
+            )
+            return
+
+        if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
+            warning_screen = QMessageBox()
+            warning_screen.setFixedSize(500, 200)
+            warning_screen.critical(
+                self,
+                "Error",
+                "Number of unique inputs cannot be larger than the number of inputs.",
             )
             return
 
@@ -151,9 +160,11 @@ class DataOptionList(QWidget):
         self.thread = None
         self.finished_generating.emit()
 
+    @pyqtSlot(int)
     def update_bar(self, value: int):
         self.bar_advanced.emit(value)
 
+    @pyqtSlot()
     def path_clicked(self):
         self.filename = QFileDialog.getSaveFileName(
             self, "Select path", "..", "DAT (*.dat)"

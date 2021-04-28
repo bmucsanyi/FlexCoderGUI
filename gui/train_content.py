@@ -1,7 +1,7 @@
 from typing import Optional
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QWidget, QHBoxLayout
 
 from gui.train_display import TrainDisplay
 from gui.train_option_list import TrainOptionList
@@ -26,7 +26,6 @@ class TrainContent(QWidget):
 
         self.setLayout(self.upper_layout)
 
-        # self.show()
-
+    @pyqtSlot(str)
     def write_string(self, value: str):
         self.train_display.write_new_text(value)

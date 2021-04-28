@@ -27,30 +27,12 @@ class TabBar(QWidget):
         self.horizontal_layout = QHBoxLayout(self)
         self.generating_button = GeneratingButton("Data generating", self)
         self.generating_button.setFont(QFont("Roboto", 20))
-        # self.generating_button.setStyleSheet(
-        #     """
-        #     border-bottom-left-radius:0px;
-        #     border-bottom-right-radius:0px;
-        #     """
-        # )
 
         self.training_button = TrainingButton("Training", self)
         self.training_button.setFont(QFont("Roboto", 20))
-        # self.training_button.setStyleSheet(
-        #     """
-        #     border-bottom-left-radius:0px;
-        #     border-bottom-right-radius:0px;
-        #     """
-        # )
 
         self.synthesis_button = SynthesizeButton("Synthesizing", self)
         self.synthesis_button.setFont(QFont("Roboto", 20))
-        # self.synthesis_button.setStyleSheet(
-        #     """
-        #     border-bottom-left-radius:0px;
-        #     border-bottom-right-radius:0px;
-        #     """
-        # )
 
         self.horizontal_layout.addWidget(self.generating_button)
         self.horizontal_layout.addWidget(self.training_button)
@@ -58,7 +40,6 @@ class TabBar(QWidget):
 
         self.setLayout(self.horizontal_layout)
 
-        # self.show()
         self.generating_button.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Expanding
         )

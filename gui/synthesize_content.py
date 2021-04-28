@@ -1,10 +1,11 @@
 import json
 from typing import Optional
 
+from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QProgressBar
 
-from gui.synthesize_option_list import SynthesizeOptionList
 from gui.synthesize_display import SynthesizeDisplay
+from gui.synthesize_option_list import SynthesizeOptionList
 
 
 class SynthesizeContent(QWidget):
@@ -33,11 +34,11 @@ class SynthesizeContent(QWidget):
 
         self.setLayout(self.vertical_layout)
 
-        # self.show()
-
+    @pyqtSlot(int)
     def update_bar(self, value: int):
         self.progress_bar.setValue(value)
 
+    @pyqtSlot()
     def populate_image_display(self):
         self.progress_bar.setValue(100)
 

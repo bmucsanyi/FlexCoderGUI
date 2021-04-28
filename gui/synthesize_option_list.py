@@ -77,8 +77,7 @@ class SynthesizeOptionList(QWidget):
 
         self.setFixedWidth(250)
 
-        # self.show()
-
+    @pyqtSlot()
     def text_changed(self):
         if self.input_line_edit.text() == self.output_line_edit.text() == "":
             self.select_dataset_button.setEnabled(True)
@@ -86,6 +85,7 @@ class SynthesizeOptionList(QWidget):
             self.select_dataset_button.setEnabled(False)
             self.load_path = None
 
+    @pyqtSlot()
     def start_synthesizing(self):
         if self.input_line_edit.text() == "" and self.output_line_edit.text() != "":
             warning_screen = QMessageBox()
@@ -213,19 +213,23 @@ class SynthesizeOptionList(QWidget):
         self.thread = None
         self.finished_synthesizing.emit()
 
+    @pyqtSlot(int)
     def update_bar(self, value: int):
         self.bar_advanced.emit(value)
 
+    @pyqtSlot()
     def model_clicked(self):
         self.model_filename = QFileDialog.getOpenFileName(
             self, "Select model", "..", "CKPT (*.ckpt)"
         )[0]
 
+    @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
             self, "Select test dataset", "..", "DAT (*.dat)"
         )[0]
 
+    @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
             self, "Select path", "..", QFileDialog.ShowDirsOnly

@@ -1,6 +1,7 @@
 from typing import Optional
 
-from PyQt5.QtGui import QFont, QPainter
+from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import (
     QWidget,
@@ -9,10 +10,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
 )
-from PyQt5.QtSvg import QSvgWidget, QSvgRenderer
-from PyQt5.QtCore import Qt, QSize
 
 
+# noinspection PyUnresolvedReferences
 class SynthesizeDisplay(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -33,7 +33,6 @@ class SynthesizeDisplay(QWidget):
 
         self.image_label = QLabel(parent=self)
         self.image_label.setAlignment(Qt.AlignCenter)
-        # self.image_label = QSvgWidget()
 
         self.horizontal_layout = QHBoxLayout()
         self.back_button = QPushButton(parent=self)
@@ -48,7 +47,6 @@ class SynthesizeDisplay(QWidget):
         self.forward_button.setEnabled(False)
         self.forward_button.clicked.connect(self.next_image)
 
-        # self.image_label.setScaledContents(True)
         self.image_label.setText("Awaiting results...")
         self.image_label.setFont(QFont("Roboto", 15))
 
@@ -61,7 +59,6 @@ class SynthesizeDisplay(QWidget):
         self.vertical_layout.addLayout(self.horizontal_layout)
 
         self.setLayout(self.vertical_layout)
-        # self.show()
 
     def load_images(self, image_list):
         self.image_list = image_list
@@ -91,19 +88,16 @@ class SynthesizeDisplay(QWidget):
             self.image_label.setPixmap(QPixmap(None))
             self.image_label.setText("No solution for the given problem.")
 
+    @pyqtSlot()
     def previous_image(self):
         self.image_index -= 1
         if self.image_index == -1:
             self.image_index = len(self.image_list) - 1
         self.display_image()
 
+    @pyqtSlot()
     def next_image(self):
         self.image_index += 1
         if self.image_index == len(self.image_list):
             self.image_index = 0
         self.display_image()
-
-
-# app = QApplication(sys.argv)
-# w = TrainDisplay()
-# app.exec_()

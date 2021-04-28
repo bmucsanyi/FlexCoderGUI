@@ -9,6 +9,7 @@ from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTextEdit
 
 
+# noinspection PyUnresolvedReferences
 class TensorBoardWorker(QObject):
     finished = pyqtSignal()
     start_signal = pyqtSignal()
@@ -29,6 +30,7 @@ class TensorBoardWorker(QObject):
         self.finished.emit()
 
 
+# noinspection PyUnresolvedReferences
 class TrainDisplay(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -45,9 +47,6 @@ class TrainDisplay(QWidget):
         self.console = QTextEdit()
         self.console.setReadOnly(True)
         self.console.setTextInteractionFlags(Qt.NoTextInteraction)
-        # self.console.ensureCursorVisible()
-        # self.console.setLineWrapColumnOrWidth(500)
-        # self.console.setLineWrapMode(QTextEdit.FixedPixelWidth)
 
         self.vertical_layout.addWidget(self.console)
         self.vertical_layout.addWidget(self.browser_button)
@@ -64,6 +63,7 @@ class TrainDisplay(QWidget):
         if self.server_pid is not None:
             os.kill(self.server_pid, signal.CTRL_C_EVENT)
 
+    @pyqtSlot()
     def open_browser(self):
         self.worker = TensorBoardWorker(
             "tensorboard --logdir lightning_logs", self.server_running
@@ -85,8 +85,3 @@ class TrainDisplay(QWidget):
         self.thread.quit()
         self.thread.wait()
         self.thread = None
-
-
-# app = QApplication(sys.argv)
-# w = TrainDisplay()
-# app.exec_()

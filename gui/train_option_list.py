@@ -3,6 +3,7 @@ import subprocess
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QThread
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -13,10 +14,10 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QMessageBox,
 )
-from PyQt5.QtGui import QFont
 from torch.cuda import device_count
 
 
+# noinspection PyUnresolvedReferences
 class TrainWorker(QObject):
     finished = pyqtSignal()
     start_signal = pyqtSignal()
@@ -33,6 +34,7 @@ class TrainWorker(QObject):
         process = subprocess.Popen(
             shlex.split(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        self.sub_pid = process.pid
 
         for stream in [process.stderr, process.stdout]:
             while line := stream.readline():
@@ -100,8 +102,6 @@ class TrainOptionList(QWidget):
         self.train_button.setFont(QFont("Roboto", 15))
         self.setFixedWidth(300)
 
-        # self.show()
-
     def set_up_section(self, text, minimum, maximum, step_size=1, exp=False):
         if exp:
             label = QLabel(text + f": {2**minimum}", self)
@@ -114,29 +114,38 @@ class TrainOptionList(QWidget):
 
         if exp:
             slider.valueChanged.connect(
-                lambda value: label.setText(
-                    " ".join(label.text().split()[:-1]) + " " + str(2 ** value)
+                pyqtSlot()(
+                    lambda value: label.setText(
+                        " ".join(label.text().split()[:-1]) + " " + str(2 ** value)
+                    )
                 )
             )
         else:
             slider.valueChanged.connect(
-                lambda value: label.setText(
-                    " ".join(label.text().split()[:-1]) + " " + str(value * step_size)
+                pyqtSlot()(
+                    lambda value: label.setText(
+                        " ".join(label.text().split()[:-1])
+                        + " "
+                        + str(value * step_size)
+                    )
                 )
             )
 
         return label, slider
 
+    @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
             self, "Select dataset", "..", "DAT (*.dat)"
         )[0]
 
+    @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
             self, "Select path", "..", QFileDialog.ShowDirsOnly
         )
 
+    @pyqtSlot()
     def start_training(self):
         if self.load_path is None:
             warning_screen = QMessageBox()
@@ -168,9 +177,11 @@ class TrainOptionList(QWidget):
         self.thread.start()
         self.worker.start_signal.emit()
 
+    @pyqtSlot(str)
     def pass_string(self, value: str):
         self.can_write.emit(value)
 
+    @pyqtSlot()
     def reactivate_button(self):
         self.worker = None
         self.thread.quit()
@@ -178,9 +189,18 @@ class TrainOptionList(QWidget):
         self.thread = None
         self.train_button.setEnabled(True)
 
+    @pyqtSlot(int)
     def checkbox_checked(self, _: int):
         if self.batch_size_slider.isEnabled():
             self.batch_size_slider.setValue(self.batch_size_slider.minimum())
             self.batch_size_slider.setEnabled(False)
         else:
             self.batch_size_slider.setEnabled(True)
+
+    def __del__(self):
+        if self.worker is not None and self.worker.sub_pid is not None:
+            os.kill(self.worker.sub_pid, signal.CTRL_C_EVENT)
+        self.worker = None
+        if self.thread is not None:
+            self.thread.quit()
+            self.thread.wait()

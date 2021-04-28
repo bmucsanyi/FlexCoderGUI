@@ -240,6 +240,8 @@ def collate_fn(batch: list[tuple]) -> tuple:
         ),
     )
 
+# TODO: lag when switching from data generating
+
 
 def print_batch(batch: tuple) -> None:
     for i in range(2):

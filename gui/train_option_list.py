@@ -1,7 +1,7 @@
+import os
 import shlex
 import signal
 import subprocess
-import os
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QThread

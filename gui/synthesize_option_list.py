@@ -92,13 +92,17 @@ class SynthesizeOptionList(QWidget):
             if self.input_line_edit.text() == "" and self.output_line_edit.text() != "":
                 warning_screen = QMessageBox()
                 warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(self, "Error", "Please provide the inputs, too.")
+                warning_screen.critical(
+                    self, "Error", "Please provide the inputs, too."
+                )
                 return
 
             if self.output_line_edit.text() == "" and self.input_line_edit.text() != "":
                 warning_screen = QMessageBox()
                 warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(self, "Error", "Please provide the outputs, too.")
+                warning_screen.critical(
+                    self, "Error", "Please provide the outputs, too."
+                )
                 return
 
             if (
@@ -115,7 +119,9 @@ class SynthesizeOptionList(QWidget):
             if self.model_filename is None:
                 warning_screen = QMessageBox()
                 warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(self, "Error", "Please provide a model checkpoint.")
+                warning_screen.critical(
+                    self, "Error", "Please provide a model checkpoint."
+                )
                 return
 
             if self.save_path is None:

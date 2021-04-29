@@ -20,12 +20,12 @@ class SynthesizeContent(QWidget):
         self.vertical_layout = QVBoxLayout(self)
         self.upper_layout = QHBoxLayout()
         self.synthesize_option_list = SynthesizeOptionList(self)
-        self.synthesize_option_list.started_synthesizing.connect(pyqtSlot()(
-            lambda: self.started_synthesizing.emit()
-        ))
-        self.synthesize_option_list.finished_synthesizing.connect(pyqtSlot()(
-            lambda: self.finished_synthesizing.emit()
-        ))
+        self.synthesize_option_list.started_synthesizing.connect(
+            pyqtSlot()(lambda: self.started_synthesizing.emit())
+        )
+        self.synthesize_option_list.finished_synthesizing.connect(
+            pyqtSlot()(lambda: self.finished_synthesizing.emit())
+        )
         self.synthesize_display = SynthesizeDisplay(self)
 
         self.upper_layout.addWidget(self.synthesize_option_list)

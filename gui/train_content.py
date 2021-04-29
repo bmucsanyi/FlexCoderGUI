@@ -19,12 +19,12 @@ class TrainContent(QWidget):
         self.upper_layout = QHBoxLayout(self)
         self.train_option_list = TrainOptionList(self)
         self.train_option_list.can_write.connect(self.write_string)
-        self.train_option_list.started_training.connect(pyqtSlot()(
-            lambda: self.started_training.emit()
-        ))
-        self.train_option_list.finished_training.connect(pyqtSlot()(
-            lambda: self.finished_training.emit()
-        ))
+        self.train_option_list.started_training.connect(
+            pyqtSlot()(lambda: self.started_training.emit())
+        )
+        self.train_option_list.finished_training.connect(
+            pyqtSlot()(lambda: self.finished_training.emit())
+        )
 
         self.train_display = TrainDisplay(self)
 

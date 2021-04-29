@@ -1,8 +1,8 @@
 import sys
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication
-from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication
 
 from gui.data_content import DataContent
 from gui.synthesize_content import SynthesizeContent

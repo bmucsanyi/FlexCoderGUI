@@ -31,14 +31,16 @@ class DataDisplay(QWidget):
         super().__init__(parent)
 
         self.mpl_canvas = MplCanvas()
-        self.populate_diagram(MOCK_DICT)
+        self.populate_diagram()
 
         self.vertical_layout = QVBoxLayout(self)
         self.vertical_layout.addWidget(self.mpl_canvas)
 
         self.setLayout(self.vertical_layout)
 
-    def populate_diagram(self, statistics: dict):
+    def populate_diagram(self, statistics: Optional[dict] = None):
+        if statistics is None:
+            statistics = MOCK_DICT
         self.mpl_canvas.axes.clear()
         self.mpl_canvas.axes.set_title("Distribution of function types")
         self.mpl_canvas.axes.bar(*zip(*statistics.items()), color="green")

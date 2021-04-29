@@ -48,11 +48,17 @@ def parse_program_args() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    print("*" * 10)
     parser = parse_program_args()
     parser = pl.Trainer.add_argparse_args(parser)
     args = parser.parse_args()
 
-    model = FlexNet(args.dataset, args.batch_size)
+    try:
+        model = FlexNet(args.dataset, args.batch_size)
+    except ValueError:
+        print("Error: Only datasets with 1 I/O are accepted.")
+        return
+
     trainer = pl.Trainer.from_argparse_args(
         args,
         callbacks=[
@@ -71,6 +77,7 @@ def main() -> None:
     trainer.fit(model)
     trainer.test(model)
     print("End of training.")
+    print("*" * 10)
 
 
 if __name__ == "__main__":

@@ -286,6 +286,7 @@ def beam_search(
     beam_size: int,
     max_length,
     target: OutputType,
+    worker
 ) -> Optional[SearchNode]:
     def transform_target(target):
         # This just makes the api a bit more user friendly
@@ -380,6 +381,8 @@ def beam_search(
                     nodes.append(node)
                     if len(nodes) == beam:
                         break
+                if worker.shutdown:
+                    return
 
     return make_stat(None, None, inp)
 

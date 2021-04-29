@@ -17,15 +17,14 @@ class TensorBoardWorker(QObject):
     def __init__(self, cmd, server_running: bool):
         super().__init__()
         self.cmd = cmd
-        self.sub_pid = None
         self.server_running = server_running
+        self.popen = None
         self.start_signal.connect(self.process, Qt.QueuedConnection)
 
     @pyqtSlot()
     def process(self):
         if not self.server_running:
-            process = subprocess.Popen(shlex.split(self.cmd))
-            self.sub_pid = process.pid
+            self.popen = subprocess.Popen(shlex.split(self.cmd))
         webbrowser.open("http://localhost:6006")
         self.finished.emit()
 
@@ -38,7 +37,6 @@ class TrainDisplay(QWidget):
         self.thread = None
         self.worker = None
         self.server_running = False
-        self.server_pid = None
 
         self.browser_button = QPushButton("Show details in browser", self)
         self.browser_button.clicked.connect(self.open_browser)
@@ -60,8 +58,8 @@ class TrainDisplay(QWidget):
         if self.thread is not None:
             self.thread.quit()
             self.thread.wait()
-        if self.server_pid is not None:
-            os.kill(self.server_pid, signal.CTRL_C_EVENT)
+        if self.worker is not None and self.worker.popen is not None:
+            self.worker.popen.send_signal(signal.SIGTERM)
 
     @pyqtSlot()
     def open_browser(self):
@@ -79,8 +77,6 @@ class TrainDisplay(QWidget):
 
     @pyqtSlot()
     def clean_up_worker(self):
-        if self.worker.sub_pid is not None:
-            self.server_pid = self.worker.sub_pid
         self.worker = None
         self.thread.quit()
         self.thread.wait()

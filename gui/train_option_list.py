@@ -1,5 +1,7 @@
 import shlex
+import signal
 import subprocess
+import os
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QThread
@@ -26,17 +28,17 @@ class TrainWorker(QObject):
     def __init__(self, cmd):
         super().__init__()
         self.cmd = cmd
-        self.sub_pid = None
+        self.popen = None
         self.start_signal.connect(self.process, Qt.QueuedConnection)
+        self.interrupted = False
 
     @pyqtSlot()
     def process(self):
-        process = subprocess.Popen(
+        self.popen = subprocess.Popen(
             shlex.split(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        self.sub_pid = process.pid
 
-        for stream in [process.stderr, process.stdout]:
+        for stream in [self.popen.stderr, self.popen.stdout]:
             while line := stream.readline():
                 self.can_write.emit(line.decode())
 
@@ -140,45 +142,57 @@ class TrainOptionList(QWidget):
         self.load_path = QFileDialog.getOpenFileName(
             self, "Select dataset", "..", "DAT (*.dat)"
         )[0]
+        if not self.load_path:
+            self.load_path = None
 
     @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
             self, "Select path", "..", QFileDialog.ShowDirsOnly
         )
+        if not self.save_path:
+            self.save_path = None
 
     @pyqtSlot()
     def start_training(self):
-        if self.load_path is None:
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self, "Error", "No dataset provided. Please select the desired path."
+        if self.train_button.text() == "Start training":
+            if self.load_path is None:
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self,
+                    "Error",
+                    "No dataset provided. Please select the desired path.",
+                )
+                return
+
+            if self.save_path is None:
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(self, "Error", "No save path provided.")
+                return
+
+            self.train_button.setText("Stop")
+            self.train_button.setStyleSheet("background-color: red;")
+
+            cmd = (
+                f"python train.py {'--auto_scale_batch_size power' if self.batch_size_checkbox.isChecked() else ''} "
+                f"--gpus {self.num_gpus_slider.value()} --dataset {self.load_path} --save_path {self.save_path} "
+                f"--max_epochs {5*self.epochs_slider.value()} "
+                f"--batch_size {2**self.batch_size_slider.value()} --patience {self.patience_slider.value()}"
             )
-            return
 
-        if self.save_path is None:
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(self, "Error", "No save path provided.")
-            return
-
-        self.train_button.setEnabled(False)
-        cmd = (
-            f"python train.py {'--auto_scale_batch_size power' if self.batch_size_checkbox.isChecked() else ''} "
-            f"--gpus {self.num_gpus_slider.value()} --dataset {self.load_path} --save_path {self.save_path} "
-            f"--max_epochs {5*self.epochs_slider.value()} "
-            f"--batch_size {2**self.batch_size_slider.value()} --patience {self.patience_slider.value()}"
-        )
-
-        self.worker = TrainWorker(cmd)
-        self.thread = QThread()
-        self.worker.moveToThread(self.thread)
-        self.worker.can_write.connect(self.pass_string)
-        self.worker.finished.connect(self.reactivate_button)
-        self.thread.start()
-        self.worker.start_signal.emit()
-        self.started_training.emit()
+            self.worker = TrainWorker(cmd)
+            self.thread = QThread()
+            self.worker.moveToThread(self.thread)
+            self.worker.can_write.connect(self.pass_string)
+            self.worker.finished.connect(self.reactivate_button)
+            self.thread.start()
+            self.worker.start_signal.emit()
+            self.started_training.emit()
+        else:
+            if self.worker.popen is not None:
+                self.worker.popen.send_signal(signal.SIGTERM)
 
     @pyqtSlot(str)
     def pass_string(self, value: str):
@@ -190,7 +204,8 @@ class TrainOptionList(QWidget):
         self.thread.quit()
         self.thread.wait()
         self.thread = None
-        self.train_button.setEnabled(True)
+        self.train_button.setText("Start training")
+        self.train_button.setStyleSheet("")
         self.finished_training.emit()
 
     @pyqtSlot(int)

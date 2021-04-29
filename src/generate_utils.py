@@ -3,12 +3,12 @@ import itertools
 import json
 import math
 import operator
+import os
 import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import combinations, permutations
 from typing import Optional, Union, Generator
-from src.grammar import ABBREVATION_DICT
 
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
@@ -17,6 +17,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 from src.composition import Composition, UnimprovableInputError
 from src.func_impl import *
 from src.function import Function, ALL_FUNCTIONS, BUCKETS
+from src.grammar import ABBREVATION_DICT
 
 
 # python -m src.generate_utils 100 --functions 6 --inputs 4 --unique_inputs 2
@@ -829,12 +830,13 @@ def generate_copy_comps(
 class DataWorker(QObject):
     bar_advanced = pyqtSignal(int)
     start_signal = pyqtSignal()
-    finished = pyqtSignal()
+    finished = pyqtSignal(bool)
 
     def __init__(self, args: Arguments):
         super().__init__()
         self.args = args
         self.start_signal.connect(self.process, Qt.QueuedConnection)
+        self.shutdown = False
 
     @pyqtSlot()
     def process(self):
@@ -850,10 +852,11 @@ class DataWorker(QObject):
                     )
                 )
 
-                # if self.shutdown:
-                #     self.finished.emit()
-                #     return
-            self.finished.emit()
+                if self.shutdown:
+                    break
+        if self.shutdown:
+            os.remove(self.args.filename)
+        self.finished.emit(not self.shutdown)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ from src.generate_utils import DataWorker, Arguments
 class DataOptionList(QWidget):
     bar_advanced = pyqtSignal(int)
     started_generating = pyqtSignal()
-    finished_generating = pyqtSignal()
+    finished_generating = pyqtSignal(bool)
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -103,64 +103,72 @@ class DataOptionList(QWidget):
         return label, slider
 
     def start_generating(self):
-        num_comps_string = self.num_comps_line_edit.text()
-        if not num_comps_string.isnumeric() or num_comps_string == "0":
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self,
-                "Error",
-                "The number of compositions is expected to be a positive integer value.",
+        if self.generate_button.text() == "Generate":
+            num_comps_string = self.num_comps_line_edit.text()
+            if not num_comps_string.isnumeric() or num_comps_string == "0":
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self,
+                    "Error",
+                    "The number of compositions is expected to be a positive integer value.",
+                )
+                return
+
+            if self.filename is None:
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self,
+                    "Error",
+                    "No filename provided. Please select the desired path.",
+                )
+                return
+
+            if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self,
+                    "Error",
+                    "Number of unique inputs cannot be larger than the number of inputs.",
+                )
+                return
+
+            self.generate_button.setText("Stop")
+            self.generate_button.setStyleSheet("background-color: red;")
+
+            args = Arguments(
+                int(num_comps_string),
+                self.filename,
+                self.num_functions_slider.value(),
+                self.num_io_slider.value(),
+                self.num_inputs_slider.value(),
+                self.num_unique_inputs_slider.value(),
+                self.num_samples_per_comp_slider.value(),
+                self.is_test_checkbox.isChecked(),
             )
-            return
 
-        if self.filename is None:
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self, "Error", "No filename provided. Please select the desired path."
-            )
-            return
+            self.worker = DataWorker(args)
+            self.thread = QThread()
+            self.worker.moveToThread(self.thread)
+            self.worker.bar_advanced.connect(self.update_bar)
+            self.worker.finished.connect(self.finish_generating)
+            self.thread.start()
+            self.worker.start_signal.emit()
+            self.started_generating.emit()
+        else:
+            self.worker.shutdown = True
 
-        if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self,
-                "Error",
-                "Number of unique inputs cannot be larger than the number of inputs.",
-            )
-            return
-
-        args = Arguments(
-            int(num_comps_string),
-            self.filename,
-            self.num_functions_slider.value(),
-            self.num_io_slider.value(),
-            self.num_inputs_slider.value(),
-            self.num_unique_inputs_slider.value(),
-            self.num_samples_per_comp_slider.value(),
-            self.is_test_checkbox.isChecked(),
-        )
-
-        self.worker = DataWorker(args)
-        self.thread = QThread()
-        self.worker.moveToThread(self.thread)
-        self.worker.bar_advanced.connect(self.update_bar)
-        self.worker.finished.connect(self.finish_generating)
-        self.thread.start()
-        self.worker.start_signal.emit()
-        self.generate_button.setEnabled(False)
-        self.started_generating.emit()
-
-    @pyqtSlot()
-    def finish_generating(self):
-        self.generate_button.setEnabled(True)
+    @pyqtSlot(bool)
+    def finish_generating(self, generated: bool):
         self.worker = None
         self.thread.quit()
         self.thread.wait()
         self.thread = None
-        self.finished_generating.emit()
+        self.generate_button.setText("Generate")
+        self.generate_button.setStyleSheet("")
+        self.finished_generating.emit(generated)
 
     @pyqtSlot(int)
     def update_bar(self, value: int):
@@ -171,3 +179,5 @@ class DataOptionList(QWidget):
         self.filename = QFileDialog.getSaveFileName(
             self, "Select path", "..", "DAT (*.dat)"
         )[0]
+        if not self.filename:
+            self.filename = None

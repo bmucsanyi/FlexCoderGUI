@@ -18,6 +18,7 @@ class SynthesizeWorker(QObject):
         self.save_filename = save_filename
         self.model_filename = model_filename
         self.start_signal.connect(self.process, Qt.QueuedConnection)
+        self.shutdown = False
 
     @pyqtSlot()
     def process(self):
@@ -33,7 +34,14 @@ class SynthesizeWorker(QObject):
             for i, line in enumerate(lines):
                 out = json.loads(line)
                 inp = tuple([[x]] for x in out["input"])
-                res = flexcoder.beam_search(inp, 100, 8, out["output"])
+                res = flexcoder.beam_search(inp, 100, 8, out["output"], self)
+
+                if self.shutdown:
+                    with open("images.json", "w") as json_file:
+                        json.dump(file_image, json_file)
+                    self.finished.emit()
+                    return
+
                 if res["program"] is not None:
                     counter += 1
                     filename = f"{self.save_filename}/result{png_counter}.png"

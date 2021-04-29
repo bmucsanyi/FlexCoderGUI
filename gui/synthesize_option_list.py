@@ -88,127 +88,132 @@ class SynthesizeOptionList(QWidget):
 
     @pyqtSlot()
     def start_synthesizing(self):
-        if self.input_line_edit.text() == "" and self.output_line_edit.text() != "":
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(self, "Error", "Please provide the inputs, too.")
-            return
+        if self.synthesize_button.text() == "Start synthesizing":
+            if self.input_line_edit.text() == "" and self.output_line_edit.text() != "":
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(self, "Error", "Please provide the inputs, too.")
+                return
 
-        if self.output_line_edit.text() == "" and self.input_line_edit.text() != "":
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(self, "Error", "Please provide the outputs, too.")
-            return
+            if self.output_line_edit.text() == "" and self.input_line_edit.text() != "":
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(self, "Error", "Please provide the outputs, too.")
+                return
 
-        if (
-            self.input_line_edit.text() == self.output_line_edit.text() == ""
-            and self.load_path is None
-        ):
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self, "Error", "Please provide the dataset or exact problem."
-            )
-            return
+            if (
+                self.input_line_edit.text() == self.output_line_edit.text() == ""
+                and self.load_path is None
+            ):
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self, "Error", "Please provide the dataset or exact problem."
+                )
+                return
 
-        if self.model_filename is None:
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(self, "Error", "Please provide a model checkpoint.")
-            return
+            if self.model_filename is None:
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(self, "Error", "Please provide a model checkpoint.")
+                return
 
-        if self.save_path is None:
-            warning_screen = QMessageBox()
-            warning_screen.setFixedSize(500, 200)
-            warning_screen.critical(
-                self,
-                "Error",
-                "Please provide the save path of the synthesized compositions.",
-            )
-            return
+            if self.save_path is None:
+                warning_screen = QMessageBox()
+                warning_screen.setFixedSize(500, 200)
+                warning_screen.critical(
+                    self,
+                    "Error",
+                    "Please provide the save path of the synthesized compositions.",
+                )
+                return
 
-        if self.input_line_edit.text() == self.output_line_edit.text() == "":
-            load_filename = self.load_path
-        else:
-            try:
-                input_state_tuple = literal_eval(self.input_line_edit.text())
+            if self.input_line_edit.text() == self.output_line_edit.text() == "":
+                load_filename = self.load_path
+            else:
+                try:
+                    input_state_tuple = literal_eval(self.input_line_edit.text())
 
-                if not (
-                    isinstance(input_state_tuple, tuple)
-                    and all(isinstance(elem, list) for elem in input_state_tuple)
-                    and (
-                        all(
-                            isinstance(num, int)
-                            for elem in input_state_tuple
-                            for num in elem
-                        )
-                        or (
+                    if not (
+                        isinstance(input_state_tuple, tuple)
+                        and all(isinstance(elem, list) for elem in input_state_tuple)
+                        and (
                             all(
-                                isinstance(subelem, list)
+                                isinstance(num, int)
                                 for elem in input_state_tuple
-                                for subelem in elem
+                                for num in elem
                             )
+                            or (
+                                all(
+                                    isinstance(subelem, list)
+                                    for elem in input_state_tuple
+                                    for subelem in elem
+                                )
+                                and all(
+                                    isinstance(subsubelem, int)
+                                    for elem in input_state_tuple
+                                    for subelem in elem
+                                    for subsubelem in subelem
+                                )
+                            )
+                        )
+                    ):
+                        raise ValueError
+                except (SyntaxError, ValueError):
+                    warning_screen = QMessageBox()
+                    warning_screen.setFixedSize(500, 200)
+                    warning_screen.critical(
+                        self, "Error", "Invalid input state tuple provided."
+                    )
+                    return
+
+                try:
+                    output_list = literal_eval(self.output_line_edit.text())
+
+                    if not (
+                        all(isinstance(num, int) for num in output_list)
+                        or (
+                            all(isinstance(sublist, list) for sublist in output_list)
                             and all(
-                                isinstance(subsubelem, int)
-                                for elem in input_state_tuple
-                                for subelem in elem
-                                for subsubelem in subelem
+                                isinstance(num, int)
+                                for sublist in output_list
+                                for num in sublist
                             )
                         )
+                    ):
+                        raise ValueError
+                except (SyntaxError, ValueError):
+                    warning_screen = QMessageBox()
+                    warning_screen.setFixedSize(500, 200)
+                    warning_screen.critical(
+                        self, "Error", "Invalid output state tuple provided."
                     )
-                ):
-                    raise ValueError
-            except (SyntaxError, ValueError):
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Invalid input state tuple provided."
-                )
-                return
+                    return
 
-            try:
-                output_list = literal_eval(self.output_line_edit.text())
+                sample_dict = {"input": input_state_tuple, "output": [output_list]}
+                with open("sample000.dat", "w") as f:
+                    json.dump(sample_dict, f)
+                load_filename = "sample000.dat"
 
-                if not (
-                    all(isinstance(num, int) for num in output_list)
-                    or (
-                        all(isinstance(sublist, list) for sublist in output_list)
-                        and all(
-                            isinstance(num, int)
-                            for sublist in output_list
-                            for num in sublist
-                        )
-                    )
-                ):
-                    raise ValueError
-            except (SyntaxError, ValueError):
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Invalid output state tuple provided."
-                )
-                return
-
-            sample_dict = {"input": input_state_tuple, "output": [output_list]}
-            with open("sample000.dat", "w") as f:
-                json.dump(sample_dict, f)
-            load_filename = "sample000.dat"
-
-        self.worker = SynthesizeWorker(
-            load_filename, self.save_path, self.model_filename
-        )
-        self.thread = QThread()
-        self.worker.moveToThread(self.thread)
-        self.worker.bar_advanced.connect(self.update_bar)
-        self.worker.finished.connect(self.finish_synthesizing)
-        self.thread.start()
-        self.worker.start_signal.emit()
-        self.synthesize_button.setEnabled(False)
-        self.started_synthesizing.emit()
+            self.worker = SynthesizeWorker(
+                load_filename, self.save_path, self.model_filename
+            )
+            self.thread = QThread()
+            self.worker.moveToThread(self.thread)
+            self.worker.bar_advanced.connect(self.update_bar)
+            self.worker.finished.connect(self.finish_synthesizing)
+            self.thread.start()
+            self.worker.start_signal.emit()
+            self.synthesize_button.setText("Stop")
+            self.synthesize_button.setStyleSheet("background-color: red;")
+            self.started_synthesizing.emit()
+        else:
+            self.worker.shutdown = True
 
     @pyqtSlot()
     def finish_synthesizing(self):
-        self.synthesize_button.setEnabled(True)
+        self.synthesize_button.setText("Start synthesizing")
+        self.synthesize_button.setStyleSheet("")
         self.worker = None
         self.thread.quit()
         self.thread.wait()

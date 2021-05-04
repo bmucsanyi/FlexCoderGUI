@@ -54,7 +54,7 @@ class Function:
         return cls(definition=function, operator=operator_, number=number)
 
     @classmethod
-    def from_dict_2(cls, func_dict: dict) -> "Function":
+    def from_detailed_dict(cls, func_dict: dict) -> "Function":
         """Factory method that creates a Function instance from a dictionary
         object containing the parts of the function as strings.
 
@@ -64,7 +64,7 @@ class Function:
         function = func_dict["definition"]
         function = FUNC_DICT[function]
 
-        if func_dict["num_lambda_operator"] is not None :
+        if func_dict["num_lambda_operator"] is not None:
             operator_ = func_dict["num_lambda_operator"]
             operator_ = OPERATOR_DICT[operator_]
         elif func_dict["bool_lambda_operator"] is not None:
@@ -188,7 +188,7 @@ class Function:
     ) -> tuple[OutputWithIndicesType, int]:
         """Evaluates ``self`` using its ``inputs`` attribute or the
         ``param_inputs`` parameter, returning the output and the corresponding
-        original indices in one of the inputs, as well as the id of the
+        original indices in one of the inputs, as well as the _id of the
         aforementioned input.
 
         The method overrides the ``inputs`` attribute of ``self`` if
@@ -198,7 +198,7 @@ class Function:
         function in a composition. In such case, the ``inputs`` attribute of
         the function is combined with the ``param_inputs`` parameter, producing
         the entire input to the function. If ``self`` is zip_with, then the
-        output indices and id will be randomly chosen between the inputs.
+        output indices and _id will be randomly chosen between the inputs.
 
 
         Args:
@@ -214,7 +214,7 @@ class Function:
             An output of type ``OutputWithIndicesType``. If there are multiple IO examples
               specified in the array attribute or parameter, the output
               will be a list of output values corresponding to each
-              example, annotated with indices of one of the inputs and its id.
+              example, annotated with indices of one of the inputs and its _id.
 
         Raises:
             ValueError: Invalid combination of inputs are provided, or the
@@ -474,7 +474,7 @@ class Function:
                 )
 
                 return res
-            except:
+            except Exception:
                 return None
 
         else:

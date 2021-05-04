@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Optional
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -49,8 +50,9 @@ class DataContent(QWidget):
     def populate_diagram(self, generated: bool):
         if generated:
             self.progress_bar.setValue(100)
-            with open("statistics.json") as f:
+            with open(".statistics.json") as f:
                 statistics = json.load(f)
+            os.remove(".statistics.json")
             self.data_display.populate_diagram(statistics)
         else:
             self.progress_bar.setValue(0)

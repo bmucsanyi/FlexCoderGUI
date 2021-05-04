@@ -47,10 +47,26 @@ class UnreachableCodeError(Exception):
 
 @dataclass
 class Composition:
-    root_function: Function
-    children: list["Composition"] = field(default_factory=list)
-    parent: Optional["Composition"] = None
-    id: int = field(default_factory=utils.generator)
+    _root_function: Function
+    _children: list["Composition"] = field(default_factory=list)
+    _parent: Optional["Composition"] = None
+    _id: int = field(default_factory=utils.generator)
+
+    @property
+    def root_function(self):
+        return self._root_function
+
+    @property
+    def children(self):
+        return self._children
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @property
+    def id(self):
+        return self._id
 
     @classmethod
     def from_composition(
@@ -73,8 +89,8 @@ class Composition:
               ``branch_2`` will be the resulting composition's root's right
               child.
         Returns:
-            A new Composition object whose root_function will be ``function``,
-            and the root's children will be ``branch_1``, and ``branch_2`` if
+            A new Composition object whose _root_function will be ``function``,
+            and the root's _children will be ``branch_1``, and ``branch_2`` if
             provided.
         Raises:
             ValueError: A valid Composition object cannot be constructed from
@@ -101,7 +117,7 @@ class Composition:
     def eval_with_indices(self) -> tuple[OutputWithIndicesType, int]:
         """Evaluates ``self`` using the inputs of its leaf nodes' functions,
         and also returns one of the inputs' original index positions, as well
-        as the id of the aforementioned input."""
+        as the _id of the aforementioned input."""
         return Composition._postorder_eval_with_indices(self)
 
     @property
@@ -124,7 +140,7 @@ class Composition:
             left to right. If some inputs or leaves are copied, they are
             present in the list as many times as they are in ``self``.
         """
-        return [input_ for leaf in self.leaves for input_ in leaf.root_function.inputs]
+        return [input_ for leaf in self.leaves for input_ in leaf._root_function.inputs]
 
     @property
     def num_inputs(self) -> int:
@@ -136,9 +152,9 @@ class Composition:
             if (
                 not node.children
                 or len(node.children) == 1
-                and node.root_function.definition is zip_with
+                and node._root_function.definition is zip_with
             ):
-                return node.root_function.inputs[0].is_more_io()
+                return node._root_function.inputs[0].is_more_io()
 
     def as_samples(self, num_io_examples: Optional[int] = None) -> Optional[list[dict]]:
         """Provides ``self``'s representation as samples that are used
@@ -222,19 +238,19 @@ class Composition:
             leaf: A leaf subcomposition of self.
             sub_comp: A Composition object that is to be attached to ``leaf``
               as a child.
-            index: The index where sub_comp will be put in ``leaf``'s children
+            index: The index where sub_comp will be put in ``leaf``'s _children
               list.
         Raises:
             ValueError:
                 ``leaf`` is a copied branch, thus it cannot be extended, as it
                 would break the invariant of copied branches.
         """
-        if leaf.id in self.copy_ids:
+        if leaf._id in self.copy_ids:
             raise ValueError("Only non-copy branches are allowed to be extended")
 
         new_sub_comp = copy.deepcopy(sub_comp)
         leaf._add_child(new_sub_comp, index=index)
-        leaf.root_function.inputs.clear()
+        leaf._root_function.inputs.clear()
 
     def extend_leaves(
         self, roots_to_add: list[Optional["Composition"]], indices: list[Optional[int]]
@@ -254,7 +270,7 @@ class Composition:
         Raises:
             ValueError:
                 The length of the provided lists do not match.
-                ``roots_to_add`` must be as long as many children ``self``
+                ``roots_to_add`` must be as long as many _children ``self``
                 can accept. Indices must be as long as ``roots_to_add``.
         """
 
@@ -262,7 +278,7 @@ class Composition:
         # present as many times as it has inputs
         flattened_leaves = []
         for leaf in self.leaves:
-            if leaf.root_function.definition is zip_with and leaf.children:
+            if leaf._root_function.definition is zip_with and leaf.children:
                 flattened_leaves.append(leaf)
             else:
                 for _ in range(leaf.num_inputs):
@@ -309,7 +325,7 @@ class Composition:
 
     def fill_input_by_id(self, new_data: InputType, input_id: int) -> None:
         for leaf in self.leaves:
-            for inp in leaf.root_function.inputs:
+            for inp in leaf._root_function.inputs:
                 if inp.id == input_id:
                     inp.data = new_data
 
@@ -374,7 +390,7 @@ class Composition:
         return self._postorder_len(self)
 
     def __eq__(self, other: object) -> bool:
-        return type(other) is type(self) and self.id == other.id
+        return type(other) is type(self) and self._id == other.id
 
     def __deepcopy__(self, memo) -> "Composition":
         new_comp = self._preorder_deepcopy(comp=self, parent=None)
@@ -390,7 +406,7 @@ class Composition:
     def __contains__(self, elem: object):
         if isinstance(elem, Input):
             for sub_comp in self:
-                for input_ in sub_comp.root_function.inputs:
+                for input_ in sub_comp._root_function.inputs:
                     if id(input_) == id(elem):
                         return True
             return False
@@ -408,13 +424,13 @@ class Composition:
     def _add_child(self, child: "Composition", index: int = None) -> None:
         def check_len(num: int):
             if len(self.children) == num:
-                raise ValueError("Maximum number of children reached.")
+                raise ValueError("Maximum number of _children reached.")
 
-        if self.root_function.definition is zip_with:
+        if self._root_function.definition is zip_with:
             check_len(2)
         else:
             check_len(1)
-        child.parent = self
+        child._parent = self
 
         if index is not None:
             self.children.insert(index, child)
@@ -425,7 +441,7 @@ class Composition:
         if self.children:
             return self.children[0].eval()
         else:
-            return self.root_function.inputs[0].data
+            return self._root_function.inputs[0].data
 
     @classmethod
     def _from_branch(cls, function: Function, branch: "Composition") -> "Composition":
@@ -459,30 +475,32 @@ class Composition:
         first_map = branch._first_map()
         if first_map.children:
             child = branch._first_map().children[0]
-            if function.definition is take and child.root_function.definition is take:
-                min_param = min(function.number, child.root_function.number)
-                child.root_function.number = min_param
+            if function.definition is take and child._root_function.definition is take:
+                min_param = min(function.number, child._root_function.number)
+                child._root_function.number = min_param
                 return branch
-            elif function.definition is drop and child.root_function.definition is drop:
-                remaining_space = grammar.MAX_NUM - child.root_function.number
+            elif (
+                function.definition is drop and child._root_function.definition is drop
+            ):
+                remaining_space = grammar.MAX_NUM - child._root_function.number
                 if function.number > remaining_space:
                     diff = function.number - remaining_space
                     function.number = diff
-                    child.root_function.number = grammar.MAX_NUM
+                    child._root_function.number = grammar.MAX_NUM
                 else:
-                    child.root_function.number += function.number
+                    child._root_function.number += function.number
                     return branch
 
                 new_comp = cls(function)
-                new_comp.parent = first_map
-                first_map.children = [new_comp]
-                child.parent = new_comp
-                new_comp.children = [child]
+                new_comp._parent = first_map
+                first_map._children = [new_comp]
+                child._parent = new_comp
+                new_comp._children = [child]
         else:
             new_comp = cls(function)
             first_map._add_child(new_comp)
             function_1 = function
-            function_2 = first_map.root_function
+            function_2 = first_map._root_function
             function_1.inputs, function_2.inputs = function_2.inputs, function_1.inputs
         return branch
 
@@ -497,7 +515,7 @@ class Composition:
     def _branch_compressor(
         cls, function: Function, branch: "Composition"
     ) -> "Composition":
-        root: Function = branch.root_function
+        root: Function = branch._root_function
         if function.definition is take and root.definition is take:
             min_param = min(function.number, root.number)
             root.number = min_param
@@ -562,20 +580,20 @@ class Composition:
 
                 return branch
         elif function.definition is sort:
-            node_funcs = set(node.root_function.definition for node in branch)
+            node_funcs = set(node._root_function.definition for node in branch)
             if all(func is not sort for func in node_funcs):
                 # If there are no sorts there is nothing to do
                 return cls._merge_branch(function, branch)
 
-            if branch.root_function.definition is reverse_func:
+            if branch._root_function.definition is reverse_func:
                 return branch
 
             for node in branch:
-                if node.root_function.definition is not sort:
+                if node._root_function.definition is not sort:
                     continue
 
                 path = Composition._path_to(node)
-                funcs_in_path = [p.root_function for p in path]
+                funcs_in_path = [p._root_function for p in path]
 
                 # Filter out explicit sort and reverse stacking
                 if (
@@ -598,17 +616,17 @@ class Composition:
             # No problems -> can merge
             return cls._merge_branch(function, branch)
         elif function.definition is reverse_func:
-            node_funcs = set(node.root_function.definition for node in branch)
+            node_funcs = set(node._root_function.definition for node in branch)
             if all(func is not reverse_func for func in node_funcs):
                 # If there are no reverse funcs there is nothing to do
                 return cls._merge_branch(function, branch)
 
             for node in branch:
-                if node.root_function.definition is not reverse_func:
+                if node._root_function.definition is not reverse_func:
                     continue
 
                 path = Composition._path_to(node)
-                funcs_in_path = [p.root_function for p in path]
+                funcs_in_path = [p._root_function for p in path]
 
                 # Filter out explicit sort and reverse stacking
                 if (
@@ -622,7 +640,7 @@ class Composition:
                 funcs_in_path = funcs_in_path[:-1]
 
                 # This is true if any functions in the path alter the ordering of the list elements
-                if branch.root_function.definition is not reverse_func and any(
+                if branch._root_function.definition is not reverse_func and any(
                     func.is_order_altering() and func.definition is not reverse_func
                     for func in funcs_in_path
                 ):
@@ -663,21 +681,21 @@ class Composition:
 
             return order_altering_func or is_order_altering_map
 
-        node_funcs = set(node.root_function.definition for node in branch)
+        node_funcs = set(node._root_function.definition for node in branch)
         if all(func is not sort for func in node_funcs):
             # If there are no sorts there is nothing to do
             return cls._merge_branch(function, branch)
 
-        if branch.root_function.definition is reverse_func:
+        if branch._root_function.definition is reverse_func:
             return branch
 
         for node in branch:
-            if node.root_function.definition is not sort:
+            if node._root_function.definition is not sort:
                 continue
 
             # Remove the last element as it's ``node``
             path = Composition._path_to(node)[:-1]
-            funcs_in_path = [p.root_function for p in path]
+            funcs_in_path = [p._root_function for p in path]
 
             # This is true if any functions in the path alter the ordering of the list elements
             if any(is_order_altering_function(func) for func in funcs_in_path):
@@ -707,21 +725,21 @@ class Composition:
 
             return order_altering_func or is_order_altering_map
 
-        node_funcs = set(node.root_function.definition for node in branch)
+        node_funcs = set(node._root_function.definition for node in branch)
         if all(func is not reverse_func for func in node_funcs):
             # If there is no reverse func there is nothing to do
             return cls._merge_branch(function, branch)
 
         for node in branch:
-            if node.root_function.definition is not reverse_func:
+            if node._root_function.definition is not reverse_func:
                 continue
 
             # Remove the last element as it's ``node``
             path = Composition._path_to(node)[:-1]
-            funcs_in_path = [p.root_function for p in path]
+            funcs_in_path = [p._root_function for p in path]
 
             # This is true if any functions in the path alter the ordering of the list elements
-            if branch.root_function.definition is not reverse_func and any(
+            if branch._root_function.definition is not reverse_func and any(
                 is_order_altering_function(func) for func in funcs_in_path
             ):
                 return cls._merge_branch(function, branch)
@@ -736,19 +754,19 @@ class Composition:
     def _preorder_deepcopy(
         cls, comp: "Composition", parent: Optional["Composition"], new_ids: bool = False
     ) -> "Composition":
-        function = copy.deepcopy(comp.root_function)
+        function = copy.deepcopy(comp._root_function)
         new_comp = cls(function)
         if not new_ids:
-            new_comp.id = comp.id
-        new_comp.children = comp.children.copy()  # Shallow copy
-        new_comp.parent = parent
+            new_comp._id = comp._id
+        new_comp._children = comp.children.copy()  # Shallow copy
+        new_comp._parent = parent
 
         for i, child in enumerate(new_comp.children):
             new_comp.children[i] = cls._preorder_deepcopy(child, new_comp, new_ids)
 
         if new_ids:
-            for i in range(len(new_comp.root_function.inputs)):
-                new_comp.root_function.inputs[i] = Input()
+            for i in range(len(new_comp._root_function.inputs)):
+                new_comp._root_function.inputs[i] = Input()
 
         return new_comp
 
@@ -759,7 +777,7 @@ class Composition:
 
     @staticmethod
     def _postorder_eval(comp: "Composition") -> OutputType:
-        root: Function = comp.root_function
+        root: Function = comp._root_function
         if not root.is_evaluable():
             if root.definition is zip_with:
                 try:
@@ -796,7 +814,7 @@ class Composition:
     def _postorder_eval_with_indices(
         comp: "Composition",
     ) -> tuple[OutputWithIndicesType, int]:
-        root: Function = comp.root_function
+        root: Function = comp._root_function
         if not root.is_evaluable():
             if root.definition is zip_with:
                 try:
@@ -841,7 +859,7 @@ class Composition:
     def _preorder_leaves(comp: "Composition", leaves: list["Composition"]) -> None:
         if (
             not comp.children
-            or comp.root_function.definition is zip_with
+            or comp._root_function.definition is zip_with
             and len(comp.children) == 1
         ):
             leaves.append(comp)
@@ -851,7 +869,7 @@ class Composition:
 
     @staticmethod
     def _preorder_num_inputs(comp: "Composition") -> int:
-        root: Function = comp.root_function
+        root: Function = comp._root_function
         children: list["Composition"] = comp.children
         if root.definition is zip_with and not children:
             return 2
@@ -877,7 +895,7 @@ class Composition:
     def _preorder_first_map(
         comp: "Composition", first_map: "Composition" = None
     ) -> Optional["Composition"]:
-        if comp.root_function.definition is map_func:
+        if comp._root_function.definition is map_func:
             if comp.children:
                 return Composition._preorder_first_map(comp.children[0], comp)
             else:
@@ -888,9 +906,9 @@ class Composition:
     @staticmethod
     def _postorder_string(comp: "Composition") -> str:
         if not comp.children:
-            return str(comp.root_function).replace("input", "final")
+            return str(comp._root_function).replace("input", "final")
         else:
-            string = str(comp.root_function)
+            string = str(comp._root_function)
             for child in comp.children:
                 child_string = Composition._postorder_string(child)
                 string = string.replace("input", child_string, 1)
@@ -948,11 +966,11 @@ class Composition:
 
                 try:
                     prev_result_2 = prev_state_tuple[index_2]
-                    result = comp.root_function.eval(
+                    result = comp._root_function.eval(
                         [prev_result_1.data, prev_result_2.data]
                     )
                     result = Input(result)
-                    result.id = comp.id
+                    result.id = comp._id
                 except TypeError:  # None as index
                     return Composition._handle_copied_subcomposition(
                         comp,
@@ -969,7 +987,7 @@ class Composition:
                 )
 
                 sample = Composition._get_sample(
-                    prev_state_tuple, output, indices, comp.root_function.as_dict()
+                    prev_state_tuple, output, indices, comp._root_function.as_dict()
                 )
                 samples.append(sample)
 
@@ -977,13 +995,13 @@ class Composition:
                     if indices[1] < left_index_dict[key]:
                         left_index_dict[key] -= 1
 
-                if comp.id in copy_ids:
+                if comp._id in copy_ids:
                     new_state_tuple = Composition._add_copy_sample(
                         comp, new_state_tuple, output, samples, copy_ids, indices[0],
                     )
 
                 return new_state_tuple, indices[0]
-            elif comp.root_function.definition is zip_with:
+            elif comp._root_function.definition is zip_with:
                 # Half-leaf zip_with node
                 try:
                     prev_result = prev_state_tuple[index_1]
@@ -997,11 +1015,11 @@ class Composition:
                         left_index_dict,
                     )
 
-                result = comp.root_function.eval([prev_result.data])
+                result = comp._root_function.eval([prev_result.data])
                 result = Input(result)
-                result.id = comp.id
+                result.id = comp._id
 
-                input_2 = comp.root_function.inputs[0]
+                input_2 = comp._root_function.inputs[0]
                 index_2 = prev_state_tuple.index(input_2)
                 indices = sorted([index_1, index_2])
 
@@ -1015,7 +1033,7 @@ class Composition:
                 )
 
                 sample = Composition._get_sample(
-                    prev_state_tuple, output, indices, comp.root_function.as_dict()
+                    prev_state_tuple, output, indices, comp._root_function.as_dict()
                 )
                 samples.append(sample)
 
@@ -1023,7 +1041,7 @@ class Composition:
                     if indices[1] < left_index_dict[key]:
                         left_index_dict[key] -= 1
 
-                if comp.id in copy_ids:
+                if comp._id in copy_ids:
                     new_state_tuple = Composition._add_copy_sample(
                         comp, new_state_tuple, output, samples, copy_ids, indices[0],
                     )
@@ -1032,9 +1050,9 @@ class Composition:
             else:
                 try:
                     prev_result = prev_state_tuple[index_1]
-                    result = comp.root_function.eval([prev_result.data])
+                    result = comp._root_function.eval([prev_result.data])
                     result = Input(result)
-                    result.id = comp.id
+                    result.id = comp._id
                 except TypeError:  # None as index
                     return Composition._handle_copied_subcomposition(
                         comp,
@@ -1053,11 +1071,11 @@ class Composition:
 
                 if prev_state_tuple != new_state_tuple:
                     sample = Composition._get_sample(
-                        prev_state_tuple, output, indices, comp.root_function.as_dict()
+                        prev_state_tuple, output, indices, comp._root_function.as_dict()
                     )
                     samples.append(sample)
 
-                if comp.id in copy_ids:
+                if comp._id in copy_ids:
                     new_state_tuple = Composition._add_copy_sample(
                         comp, new_state_tuple, output, samples, copy_ids, indices[0],
                     )
@@ -1077,7 +1095,7 @@ class Composition:
         copy_ids: list[int],
         left_index_dict: dict[int, int],
     ) -> tuple[tuple[Input, ...], int]:
-        root_function = comp.root_function
+        root_function = comp._root_function
 
         try:
             if root_function.definition is zip_with:
@@ -1119,7 +1137,7 @@ class Composition:
                 state_tuple = copy_state_tuple(state_tuple, copy_index)
 
         result = Input(comp.eval())
-        result.id = comp.id
+        result.id = comp._id
 
         new_state_tuple = Composition._get_new_state_tuple(state_tuple, result, indices)
 
@@ -1129,11 +1147,11 @@ class Composition:
 
         if state_tuple != new_state_tuple:
             sample = Composition._get_sample(
-                state_tuple, output, indices, comp.root_function.as_dict()
+                state_tuple, output, indices, comp._root_function.as_dict()
             )
             samples.append(sample)
 
-        if comp.id in copy_ids:
+        if comp._id in copy_ids:
             new_state_tuple = Composition._add_copy_sample(
                 comp, new_state_tuple, output, samples, copy_ids, indices[0]
             )
@@ -1151,14 +1169,14 @@ class Composition:
     ) -> tuple[tuple[Input, ...], int]:
         result = comp.eval()
         result = Input(result)
-        result.id = comp.id
+        result.id = comp._id
         if result in state_tuple:
             ret_index = state_tuple.index(result)
             for key in left_index_dict:
                 if left_index_dict[key] == ret_index:
                     ret_index = state_tuple.index(result, ret_index + 1)
                     break
-            if comp.id in copy_ids:
+            if comp._id in copy_ids:
                 state_tuple = Composition._add_copy_sample(
                     comp, state_tuple, output, samples, copy_ids, ret_index
                 )
@@ -1249,27 +1267,27 @@ class Composition:
             result = comp.eval()
         except ValueError:
             if (
-                comp.root_function.definition in {min, max}
+                comp._root_function.definition in {min, max}
                 and comp.parent is None
                 and comp.children
             ):
-                comp.children[0].parent = None
+                comp.children[0]._parent = None
                 return comp.children[0]
             raise
         is_empty_result = not isinstance(result, int) and all(x == [] for x in result)
 
-        if comp.root_function.definition is drop and is_empty_result:
+        if comp._root_function.definition is drop and is_empty_result:
             comp = Composition._improve_drop(comp)  # Reference might change
-        elif comp.root_function.definition is take:
+        elif comp._root_function.definition is take:
             Composition._improve_take(comp)
-        elif comp.root_function.definition is filter_func:
+        elif comp._root_function.definition is filter_func:
             Composition._improve_filter(comp)
 
         return comp
 
     @staticmethod
     def _improve_filter(comp: "Composition") -> None:
-        function = comp.root_function
+        function = comp._root_function
         function_input = comp._get_input()
 
         function_result = comp.eval()
@@ -1302,7 +1320,7 @@ class Composition:
 
     @staticmethod
     def _improve_take(comp: "Composition") -> None:
-        function = comp.root_function
+        function = comp._root_function
         function_input = comp._get_input()
 
         original_output = comp.eval()
@@ -1317,7 +1335,7 @@ class Composition:
 
     @staticmethod
     def _improve_drop(comp: "Composition") -> "Composition":
-        function = comp.root_function
+        function = comp._root_function
         for num_candidate in range(function.number - 1, 0, -1):
             function.number = num_candidate
             result = comp.eval()
@@ -1335,7 +1353,9 @@ class Composition:
                 comp.parent.children[index] = comp.children[0]
             else:
                 del comp.parent.children[index]
-                comp.parent.root_function.inputs.insert(0, comp.root_function.inputs[0])
+                comp.parent._root_function.inputs.insert(
+                    0, comp._root_function.inputs[0]
+                )
             return comp.children[0]
         else:
             if not comp.children:
@@ -1344,12 +1364,12 @@ class Composition:
                     "no function can be deleted, as the result would be an empty "
                     "composition."
                 )
-            comp.children[0].parent = None
+            comp.children[0]._parent = None
             return comp.children[0]
 
     @staticmethod
     def _handle_empty_or_noop_filter(comp: "Composition") -> None:
-        function = comp.root_function
+        function = comp._root_function
         if function.operator in {operator.gt, operator.lt}:
             success = Composition._try_operator_lt_gt(comp, function.operator)
             if not success:
@@ -1377,7 +1397,7 @@ class Composition:
 
     @staticmethod
     def _try_operator_lt_gt_noop(comp: "Composition"):
-        function = comp.root_function
+        function = comp._root_function
         function.operator = operator.gt
 
         if all(x == [] for x in comp.eval()):
@@ -1386,7 +1406,7 @@ class Composition:
     # noinspection PyTypeChecker
     @staticmethod
     def _try_operator_lt_gt(comp: "Composition", op: Callable) -> bool:
-        function = comp.root_function
+        function = comp._root_function
         function_input = comp._get_input()
 
         if isinstance(function_input[0], int):
@@ -1415,7 +1435,7 @@ class Composition:
 
     @staticmethod
     def _try_operator_mod(comp: "Composition") -> bool:
-        function = comp.root_function
+        function = comp._root_function
         function_input = comp._get_input()
 
         if isinstance(function_input[0], int):
@@ -1451,7 +1471,7 @@ class Composition:
 
     @staticmethod
     def _try_operator_eq(comp: "Composition") -> bool:
-        function = comp.root_function
+        function = comp._root_function
         function_input = comp._get_input()
 
         if isinstance(function_input[0], int):
@@ -1529,10 +1549,10 @@ class Composition:
             raise UnreachableCodeError
 
     @staticmethod
-    def _fix_input(comp: "Composition", problem_node: "Composition"):
+    def _fix_input(problem_node: "Composition"):
         def find_input_by_id(node: "Composition", input_id: int) -> InputType:
             for sub_node in node:
-                for inp in sub_node.root_function.inputs:
+                for inp in sub_node._root_function.inputs:
                     if inp.id == input_id:
                         return inp.data
 
@@ -1564,7 +1584,6 @@ class Composition:
             problem_input,
             magic_number,
             input_id,
-            composition,
             problem_index,
             is_more_io,
         ):
@@ -1580,7 +1599,6 @@ class Composition:
                         ind,
                         magic_number,
                         input_id,
-                        composition,
                     )
 
         def handle_protrusion(
@@ -1591,7 +1609,6 @@ class Composition:
             ind,
             magic_number,
             input_id,
-            composition,
         ):
             base_line = extent_of_protrusion(problem_node_, problem_index)
 
@@ -1602,7 +1619,6 @@ class Composition:
                 first_try[ind] += magic_number
 
             problem_node_.fill_input_by_id(first_try, input_id)
-            composition = Composition._optimize_drop_filter(composition)
 
             eval_1_protrusion = extent_of_protrusion(problem_node_, problem_index)
 
@@ -1618,7 +1634,7 @@ class Composition:
                     first_try[ind] -= magic_number
 
         def handle_small_protrusion(
-            out, problem_node_, input_id, problem_input, composition, magic_number
+            out, problem_node_, input_id, problem_input, magic_number
         ):
             is_more_io = Input.is_more_io_data(problem_input)
             if is_more_io:
@@ -1629,7 +1645,6 @@ class Composition:
                         problem_input,
                         magic_number,
                         input_id,
-                        composition,
                         i,
                         is_more_io,
                     )
@@ -1640,7 +1655,6 @@ class Composition:
                     problem_input,
                     magic_number,
                     input_id,
-                    composition,
                     None,
                     is_more_io,
                 )
@@ -1648,13 +1662,7 @@ class Composition:
             return problem_input
 
         def numeric_protrusion_helper(
-            problem_input,
-            problem_node_,
-            is_more_io,
-            id_,
-            composition,
-            magic_number,
-            problem_index,
+            problem_input, problem_node_, is_more_io, id_, magic_number, problem_index,
         ):
             for ind in range(len(problem_input)):
                 handle_protrusion(
@@ -1665,11 +1673,10 @@ class Composition:
                     ind,
                     magic_number,
                     id_,
-                    composition,
                 )
 
         def handle_protrusion_in_numeric_func(
-            problem_node_, id_, problem_input, composition, magic_number
+            problem_node_, id_, problem_input, magic_number
         ):
 
             is_more_io = Input.is_more_io_data(problem_input)
@@ -1677,23 +1684,11 @@ class Composition:
             if is_more_io:
                 for i, _ in enumerate(problem_input):
                     numeric_protrusion_helper(
-                        problem_input,
-                        problem_node_,
-                        is_more_io,
-                        id_,
-                        composition,
-                        magic_number,
-                        i,
+                        problem_input, problem_node_, is_more_io, id_, magic_number, i,
                     )
             else:
                 numeric_protrusion_helper(
-                    problem_input,
-                    problem_node_,
-                    is_more_io,
-                    id_,
-                    composition,
-                    magic_number,
-                    None,
+                    problem_input, problem_node_, is_more_io, id_, magic_number, None,
                 )
 
             return problem_input
@@ -1711,7 +1706,7 @@ class Composition:
                             problem_input[ind_], 2
                         )
 
-        def handle_zipwith_mul_protursion(out, problem_input):
+        def handle_zipwith_mul_protrusion(out, problem_input):
             is_more_io = Input.is_more_io_data(problem_input)
             if is_more_io:
                 for i, _ in enumerate(problem_input):
@@ -1725,28 +1720,28 @@ class Composition:
 
         out_, input_id_ = problem_node.eval_with_indices()
         problem_input_ = find_input_by_id(problem_node, input_id_)
-        root_func: Function = problem_node.root_function
+        root_func: Function = problem_node._root_function
 
         if root_func.definition is zip_with:
             if root_func.operator in (operator.sub, operator.add):
 
                 problem_input_ = handle_small_protrusion(
-                    out_, problem_node, input_id_, problem_input_, comp, magic_number_,
+                    out_, problem_node, input_id_, problem_input_, magic_number_,
                 )
                 problem_node.fill_input_by_id(problem_input_, input_id_)
 
             elif root_func.operator is operator.mul:
 
-                problem_input_ = handle_zipwith_mul_protursion(out_, problem_input_)
+                problem_input_ = handle_zipwith_mul_protrusion(out_, problem_input_)
                 problem_node.fill_input_by_id(problem_input_, input_id_)
         elif root_func.definition is map_func:
             problem_input_ = handle_small_protrusion(
-                out_, problem_node, input_id_, problem_input_, comp, magic_number_
+                out_, problem_node, input_id_, problem_input_, magic_number_
             )
             problem_node.fill_input_by_id(problem_input_, input_id_)
         elif root_func.definition in (sum, max, min, length):
             problem_input_ = handle_protrusion_in_numeric_func(
-                problem_node, input_id_, problem_input_, comp, magic_number_
+                problem_node, input_id_, problem_input_, magic_number_
             )
             problem_node.fill_input_by_id(problem_input_, input_id_)
 
@@ -1764,7 +1759,7 @@ class Composition:
         if problem_node is None:
             return True, comp
 
-        Composition._fix_input(comp, problem_node)
+        Composition._fix_input(problem_node)
 
         comp = Composition._optimize_drop_filter(comp)
 
@@ -1798,11 +1793,11 @@ class Composition:
         for child in comp.children:
             Composition._postorder_copy_ids(child, ret_dict)
 
-        if comp.parent is None or ret_dict[comp.parent.id] == 0:
-            ret_dict[comp.id] += 1
+        if comp.parent is None or ret_dict[comp.parent._id] == 0:
+            ret_dict[comp._id] += 1
 
-            if ret_dict[comp.id] == 1:
-                for input_ in comp.root_function.inputs:
+            if ret_dict[comp._id] == 1:
+                for input_ in comp._root_function.inputs:
                     ret_dict[input_.id] += 1
 
 

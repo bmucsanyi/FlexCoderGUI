@@ -17,7 +17,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 from src.composition import Composition, UnimprovableInputError
 from src.func_impl import *
 from src.function import Function, ALL_FUNCTIONS, BUCKETS
-from src.grammar import ABBREVATION_DICT
+from src.grammar import ABBREVIATION_DICT
 
 
 # python -m src.generate_utils 100 --functions 6 --inputs 4 --unique_inputs 2
@@ -35,17 +35,13 @@ class Arguments:
     is_test: bool
 
 
-class NotReachable(Exception):
-    pass
-
-
 class UnsatisfiableParametersError(Exception):
     pass
 
 
 @dataclass
 class CompDict:
-    args: Arguments
+    _args: Arguments
     _dict: defaultdict[
         int, defaultdict[int, defaultdict[bool, list[Composition]]]
     ] = field(
@@ -53,7 +49,7 @@ class CompDict:
             lambda: defaultdict(lambda: defaultdict(list))
         )
     )
-    finalized: bool = False
+    _finalized: bool = False
 
     def __iter__(self):
         return iter(self._dict)
@@ -64,7 +60,7 @@ class CompDict:
         )  # Keys: number of unique inputs
         for function in ALL_FUNCTIONS:
             function = copy.deepcopy(function)
-            if self.args.inputs > 1 and function.definition is zip_with:
+            if self._args.inputs > 1 and function.definition is zip_with:
                 comp = Composition(function)
                 comp.root_function.inputs = [Input(), Input()]
                 one_length[2][False].append(comp)
@@ -81,14 +77,14 @@ class CompDict:
 
     def __getitem__(self, ind: Union[int, tuple[int, int, bool], tuple[int, int]]):
         if isinstance(ind, tuple) and len(ind) == 2:
-            if self.finalized and (
+            if self._finalized and (
                 ind[0] not in self._dict.keys()
                 or ind[1] not in self._dict[ind[0]].keys()
             ):
                 raise IndexError("Invalid indices specified in a frozen CompDict:", ind)
             return self._dict[ind[0]][ind[1]][False] + self._dict[ind[0]][ind[1]][True]
         if isinstance(ind, tuple) and len(ind) == 3:
-            if self.finalized and (
+            if self._finalized and (
                 ind[0] not in self._dict.keys()
                 or ind[1] not in self._dict[ind[0]].keys()
                 or ind[2] not in self._dict[ind[0]][ind[1]].keys()
@@ -96,7 +92,7 @@ class CompDict:
                 raise IndexError("Invalid indices specified in a frozen CompDict:", ind)
             return self._dict[ind[0]][ind[1]][ind[2]]
         elif isinstance(ind, int):
-            if self.finalized and ind not in self._dict.keys():
+            if self._finalized and ind not in self._dict.keys():
                 raise IndexError("Invalid index specified in a frozen CompDict:", ind)
             return self._dict[ind]
         else:
@@ -114,7 +110,7 @@ class CompDict:
                         for key_3 in list(self._dict[key][key_2].keys()):
                             if not self._dict[key][key_2][key_3]:
                                 del self._dict[key][key_2][key_3]
-        self.finalized = True
+        self._finalized = True
 
     def num_compositions_at_len(self, length_: int) -> int:
         if length_ not in self._dict.keys():
@@ -123,15 +119,15 @@ class CompDict:
 
     def num_target_compositions(self) -> int:
         if (
-            self.args.functions not in self._dict.keys()
-            or self.args.inputs not in self._dict[self.args.functions].keys()
+            self._args.functions not in self._dict.keys()
+            or self._args.inputs not in self._dict[self._args.functions].keys()
         ):
             return 0
-        return len(self[self.args.functions, self.args.inputs])
+        return len(self[self._args.functions, self._args.inputs])
 
     @property
     def target(self) -> list[Composition]:
-        return self[self.args.functions, self.args.inputs][: self.args.number]
+        return self[self._args.functions, self._args.inputs][: self._args.number]
 
     def __str__(self):
         ret_str = "CompDict:\n"
@@ -155,7 +151,7 @@ class CompDict:
                 for comp in self[key_1, key_2]:
                     for node in comp:
                         func_name = node.root_function.definition.__name__
-                        occurrence_dict[ABBREVATION_DICT[func_name]] += 1
+                        occurrence_dict[ABBREVIATION_DICT[func_name]] += 1
 
         return occurrence_dict
 
@@ -176,11 +172,11 @@ class CompPlaceholder:
 
 
 def sample_generator(args: Arguments):
-    comp_dict = CompDict(args=args)
+    comp_dict = CompDict(args)
     generate_copyless_comps(comp_dict, args.number, args)
     comp_dict.finalize()
 
-    with open("statistics.json", "w") as f:
+    with open(".statistics.json", "w") as f:
         json.dump(comp_dict.statistics(), f)
 
     if args.inputs == args.unique_inputs:

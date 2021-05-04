@@ -25,7 +25,7 @@ class TabBar(QWidget):
         super().__init__(parent)
 
         self.horizontal_layout = QHBoxLayout(self)
-        self.generating_button = GeneratingButton("Data generating", self)
+        self.generating_button = GeneratingButton("Data Generation", self)
         self.generating_button.setFont(QFont("Roboto", 20))
 
         self.training_button = TrainingButton("Training", self)

@@ -11,15 +11,15 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QPushButton,
     QLineEdit,
-    QMessageBox,
     QSizePolicy,
 )
 
 from evaluator import SynthesizeWorker
+from gui.base_option_list import BaseOptionList
 
 
 # noinspection PyUnresolvedReferences
-class SynthesizeOptionList(QWidget):
+class SynthesizeOptionList(BaseOptionList):
     bar_advanced = pyqtSignal(int)
     started_synthesizing = pyqtSignal()
     finished_synthesizing = pyqtSignal()
@@ -90,47 +90,27 @@ class SynthesizeOptionList(QWidget):
     def start_synthesizing(self):
         if self.synthesize_button.text() == "Start synthesizing":
             if self.input_line_edit.text() == "" and self.output_line_edit.text() != "":
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Please provide the inputs, too."
-                )
+                self.warn("Please provide the inputs, too.")
                 return
 
             if self.output_line_edit.text() == "" and self.input_line_edit.text() != "":
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Please provide the outputs, too."
-                )
+                self.warn("Please provide the outputs, too.")
                 return
 
             if (
                 self.input_line_edit.text() == self.output_line_edit.text() == ""
                 and self.load_path is None
             ):
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Please provide the dataset or exact problem."
-                )
+                self.warn("Please provide a dataset or an exact problem.")
                 return
 
             if self.model_filename is None:
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self, "Error", "Please provide a model checkpoint."
-                )
+                self.warn("Please provide a model checkpoint.")
                 return
 
             if self.save_path is None:
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self,
-                    "Error",
-                    "Please provide the save path of the synthesized compositions.",
+                self.warn(
+                    "Please provide the save path of the synthesized compositions."
                 )
                 return
 
@@ -166,12 +146,30 @@ class SynthesizeOptionList(QWidget):
                     ):
                         raise ValueError
                 except (SyntaxError, ValueError):
-                    warning_screen = QMessageBox()
-                    warning_screen.setFixedSize(500, 200)
-                    warning_screen.critical(
-                        self, "Error", "Invalid input state tuple provided."
-                    )
+                    self.warn("Invalid input state tuple provided.")
                     return
+
+                if (
+                    not input_state_tuple
+                    or any(not elem for elem in input_state_tuple)
+                    or any(
+                        subelem == [] for elem in input_state_tuple for subelem in elem
+                    )
+                ):
+                    self.warn("Empty inputs are not allowed.")
+                    return
+
+                if isinstance(input_state_tuple[0][0], list):
+                    input_io = len(input_state_tuple[0])
+                    if input_io == 1:
+                        self.warn("Remove unnecessary parentheses from input.")
+                        return
+
+                    if not all(len(elem) == input_io for elem in input_state_tuple):
+                        self.warn("Mismatching number of I/O examples provided.")
+                        return
+                else:
+                    input_io = 1
 
                 try:
                     output_list = literal_eval(self.output_line_edit.text())
@@ -189,17 +187,32 @@ class SynthesizeOptionList(QWidget):
                     ):
                         raise ValueError
                 except (SyntaxError, ValueError):
-                    warning_screen = QMessageBox()
-                    warning_screen.setFixedSize(500, 200)
-                    warning_screen.critical(
-                        self, "Error", "Invalid output state tuple provided."
+                    self.warn("Invalid output state tuple provided.")
+                    return
+
+                if all(elem == [] for elem in output_list):
+                    self.warn(
+                        "Cases where all of the outputs are empty are not allowed."
                     )
                     return
 
+                if isinstance(output_list[0], list):
+                    output_io = len(output_list)
+                    if output_io == 1:
+                        self.warn("Remove unnecessary parentheses from output.")
+                        return
+
+                else:
+                    output_io = 1
+
+                if input_io != output_io:
+                    self.warn("Mismatching number of I/O examples provided.")
+                    return
+
                 sample_dict = {"input": input_state_tuple, "output": [output_list]}
-                with open("sample000.dat", "w") as f:
+                with open(".sample.dat", "w") as f:
                     json.dump(sample_dict, f)
-                load_filename = "sample000.dat"
+                load_filename = ".sample.dat"
 
             self.worker = SynthesizeWorker(
                 load_filename, self.save_path, self.model_filename
@@ -211,7 +224,12 @@ class SynthesizeOptionList(QWidget):
             self.thread.start()
             self.worker.start_signal.emit()
             self.synthesize_button.setText("Stop")
-            self.synthesize_button.setStyleSheet("background-color: red;")
+            self.synthesize_button.setStyleSheet(
+                """
+                :!hover{background-color: #c00000;}
+                :hover{background-color: #ff0000;}
+                """
+            )
             self.started_synthesizing.emit()
         else:
             self.worker.shutdown = True
@@ -235,15 +253,21 @@ class SynthesizeOptionList(QWidget):
         self.model_filename = QFileDialog.getOpenFileName(
             self, "Select model", "..", "CKPT (*.ckpt)"
         )[0]
+        if not self.model_filename:
+            self.model_filename = None
 
     @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
             self, "Select test dataset", "..", "DAT (*.dat)"
         )[0]
+        if not self.load_path:
+            self.load_path = None
 
     @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
             self, "Select path", "..", QFileDialog.ShowDirsOnly
         )
+        if not self.save_path:
+            self.save_path = None

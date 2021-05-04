@@ -17,17 +17,17 @@ class FlexDataset(Dataset):
         raw_data = FlexDataset.load_data(filename)
 
         (
-            self.inputs,
-            self.input_lengths,
-            self.outputs,
-            self.output_lengths,
-            self.definitions,
-            self.indices,
-            self.bool_lambda_ops,
-            self.bool_lambda_nums,
-            self.num_lambda_ops,
-            self.num_lambda_nums,
-            self.take_drop_nums,
+            self._inputs,
+            self._input_lengths,
+            self._outputs,
+            self._output_lengths,
+            self._definitions,
+            self._indices,
+            self._bool_lambda_ops,
+            self._bool_lambda_nums,
+            self._num_lambda_ops,
+            self._num_lambda_nums,
+            self._take_drop_nums,
         ) = self.process_raw_data(raw_data)
 
     @staticmethod
@@ -121,10 +121,10 @@ class FlexDataset(Dataset):
 
     @staticmethod
     def to_processed_tensor(
-            data: list[InputType], is_input: bool
+        data: list[InputType], is_input: bool
     ) -> tuple[torch.Tensor, Union[int, list[int]]]:
         def convert_and_pad(
-                list_, max_length=config.INPUT_LENGTH_HIB, pad_value=config.PAD_VALUE
+            list_, max_length=config.INPUT_LENGTH_HIB, pad_value=config.PAD_VALUE
         ) -> tuple[torch.Tensor, int]:
             tensor = torch.tensor(list_, dtype=torch.float32)
             original_length = tensor.shape[0]
@@ -179,34 +179,34 @@ class FlexDataset(Dataset):
     def __getitem__(self, index: int) -> tuple:
         return (
             (
-                (self.inputs[index], self.input_lengths[index]),
-                (self.outputs[index], self.output_lengths[index]),
+                (self._inputs[index], self._input_lengths[index]),
+                (self._outputs[index], self._output_lengths[index]),
             ),
             (
-                self.definitions[index],
-                self.indices[index],
-                self.bool_lambda_ops[index],
-                self.bool_lambda_nums[index],
-                self.num_lambda_ops[index],
-                self.num_lambda_nums[index],
-                self.take_drop_nums[index],
+                self._definitions[index],
+                self._indices[index],
+                self._bool_lambda_ops[index],
+                self._bool_lambda_nums[index],
+                self._num_lambda_ops[index],
+                self._num_lambda_nums[index],
+                self._take_drop_nums[index],
             ),
         )
 
     def __len__(self) -> int:
-        return self.inputs.shape[0]
+        return self._inputs.shape[0]
 
     def __str__(self) -> str:
         return (
-            f"{self.inputs.shape=}\n"
-            f"{len(self.input_lengths)=}\n"
-            f"{self.outputs.shape=}\n"
-            f"{len(self.output_lengths)=}\n"
-            f"{self.definitions.shape=}\n"
-            f"{self.indices.shape=}\n"
-            f"{self.bool_lambda_ops.shape=}\n"
-            f"{self.bool_lambda_nums.shape=}\n"
-            f"{self.num_lambda_ops.shape=}\n"
-            f"{self.num_lambda_nums.shape=}\n"
-            f"{self.take_drop_nums.shape=}"
+            f"{self._inputs.shape=}\n"
+            f"{len(self._input_lengths)=}\n"
+            f"{self._outputs.shape=}\n"
+            f"{len(self._output_lengths)=}\n"
+            f"{self._definitions.shape=}\n"
+            f"{self._indices.shape=}\n"
+            f"{self._bool_lambda_ops.shape=}\n"
+            f"{self._bool_lambda_nums.shape=}\n"
+            f"{self._num_lambda_ops.shape=}\n"
+            f"{self._num_lambda_nums.shape=}\n"
+            f"{self._take_drop_nums.shape=}"
         )

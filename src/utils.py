@@ -48,7 +48,9 @@ class CompOccurrence:
 
 def visualize(comp: "Composition", filename: str = "output.png") -> None:
     graph = pydot.Dot("my_graph", graph_type="graph", bgcolor="#303030")
-    graph.set_node_defaults(color='white', fontname='Courier', fontsize='12', fontcolor='white')
+    graph.set_node_defaults(
+        color="white", fontname="Courier", fontsize="12", fontcolor="white"
+    )
 
     if len(comp) > 1:
         comp_occurrences = [CompOccurrence(comp=comp, occurrences=1)]
@@ -239,8 +241,6 @@ def collate_fn(batch: list[tuple]) -> tuple:
             torch.stack(take_drop_nums),
         ),
     )
-
-# TODO: lag when switching from data generating
 
 
 def print_batch(batch: tuple) -> None:

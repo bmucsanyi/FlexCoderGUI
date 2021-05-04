@@ -78,10 +78,7 @@ class TestFunction:
             result_1 = function.eval()
             function.inputs = []
             if input_2 is not None:
-                result_2 = [
-                    function.eval([a, b])
-                    for a, b in zip(input_1, input_2)
-                ]
+                result_2 = [function.eval([a, b]) for a, b in zip(input_1, input_2)]
             else:
                 result_2 = [function.eval([a]) for a in input_1]
 

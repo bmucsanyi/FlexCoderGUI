@@ -1,25 +1,23 @@
 from typing import Optional
 
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, QThread, pyqtSlot
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QLabel,
     QCheckBox,
     QLineEdit,
-    QSlider,
     QPushButton,
-    QMessageBox,
     QFileDialog,
     QSizePolicy,
 )
 
+from gui.base_option_list import BaseOptionList
 from src.generate_utils import DataWorker, Arguments
 
 
 # noinspection PyUnresolvedReferences
-class DataOptionList(QWidget):
+class DataOptionList(BaseOptionList):
     bar_advanced = pyqtSignal(int)
     started_generating = pyqtSignal()
     finished_generating = pyqtSignal(bool)
@@ -39,7 +37,7 @@ class DataOptionList(QWidget):
         (
             self.num_samples_per_comp_label,
             self.num_samples_per_comp_slider,
-        ) = self.set_up_section("Sample / composition", 1, 1, 10)
+        ) = self.set_up_section("Sample / composition", 1, 10, 1)
 
         self.select_path_button = QPushButton("Select path", self)
         self.select_path_button.clicked.connect(self.path_clicked)
@@ -49,18 +47,18 @@ class DataOptionList(QWidget):
         self.select_path_button.setFixedHeight(30)
 
         self.num_functions_label, self.num_functions_slider = self.set_up_section(
-            "Number of functions", 1, 1, 6
+            "Number of functions", 1, 6, 1
         )
         self.num_io_label, self.num_io_slider = self.set_up_section(
-            "Number of I/O examples", 1, 1, 4
+            "Number of I/O examples", 1, 4, 1
         )
         self.num_inputs_label, self.num_inputs_slider = self.set_up_section(
-            "Number of inputs", 1, 1, 5
+            "Number of inputs", 1, 5, 1
         )
         (
             self.num_unique_inputs_label,
             self.num_unique_inputs_slider,
-        ) = self.set_up_section("Number of unique inputs", 1, 1, 5)
+        ) = self.set_up_section("Number of unique inputs", 1, 5, 1)
         self.generate_button = QPushButton("Generate", self)
         self.generate_button.clicked.connect(self.start_generating)
         self.generate_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -84,59 +82,32 @@ class DataOptionList(QWidget):
 
         self.setLayout(self.vertical_layout)
 
-    def set_up_section(self, text, single_step, minimum, maximum):
-        label = QLabel(text + f": {minimum}", self)
-        slider = QSlider(Qt.Horizontal, self)
-        slider.setMinimum(minimum)
-        slider.setMaximum(maximum)
-        slider.setValue(minimum)
-        slider.setSingleStep(single_step)
-
-        slider.valueChanged.connect(
-            pyqtSlot()(
-                lambda value: label.setText(
-                    " ".join(label.text().split()[:-1]) + " " + str(value)
-                )
-            )
-        )
-
-        return label, slider
-
     def start_generating(self):
         if self.generate_button.text() == "Generate":
             num_comps_string = self.num_comps_line_edit.text()
             if not num_comps_string.isnumeric() or num_comps_string == "0":
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self,
-                    "Error",
-                    "The number of compositions is expected to be a positive integer value.",
+                self.warn(
+                    "The number of compositions is expected to be a positive integer value."
                 )
                 return
 
             if self.filename is None:
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self,
-                    "Error",
-                    "No filename provided. Please select the desired path.",
-                )
+                self.warn("No filename provided. Please select the desired path.")
                 return
 
             if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self,
-                    "Error",
-                    "Number of unique inputs cannot be larger than the number of inputs.",
+                self.warn(
+                    "Number of unique inputs cannot be larger than the number of inputs."
                 )
                 return
 
             self.generate_button.setText("Stop")
-            self.generate_button.setStyleSheet("background-color: red;")
+            self.generate_button.setStyleSheet(
+                """
+                :!hover{background-color: #c00000;}
+                :hover{background-color: #ff0000;}
+                """
+            )
 
             args = Arguments(
                 int(num_comps_string),

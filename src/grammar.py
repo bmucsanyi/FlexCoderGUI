@@ -49,7 +49,7 @@ DEFINITIONS = [
     "copy_state_tuple",
 ]
 
-ABBREVATION_DICT = {
+ABBREVIATION_DICT = {
     "max": "max",
     "min": "min",
     "sum": "sum",
@@ -60,7 +60,7 @@ ABBREVATION_DICT = {
     "reverse_func": "rev",
     "map_func": "map",
     "filter_func": "filter",
-    "zip_with": "zip"
+    "zip_with": "zip",
 }
 
 BOOL_LAMBDA_OPERATORS = ["==", "<", ">", "%"]

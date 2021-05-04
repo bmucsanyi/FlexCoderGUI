@@ -9,14 +9,13 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QLabel,
     QCheckBox,
-    QSlider,
     QFileDialog,
     QPushButton,
-    QMessageBox,
 )
 from torch.cuda import device_count
+
+from gui.base_option_list import BaseOptionList
 
 
 # noinspection PyUnresolvedReferences
@@ -46,7 +45,7 @@ class TrainWorker(QObject):
 
 
 # noinspection PyUnresolvedReferences
-class TrainOptionList(QWidget):
+class TrainOptionList(BaseOptionList):
     can_write = pyqtSignal(str)
     started_training = pyqtSignal()
     finished_training = pyqtSignal()
@@ -106,37 +105,6 @@ class TrainOptionList(QWidget):
         self.train_button.setFont(QFont("Roboto", 15))
         self.setFixedWidth(300)
 
-    def set_up_section(self, text, minimum, maximum, step_size=1, exp=False):
-        if exp:
-            label = QLabel(text + f": {2**minimum}", self)
-        else:
-            label = QLabel(text + f": {minimum * step_size}", self)
-        slider = QSlider(Qt.Horizontal, self)
-        slider.setMinimum(minimum)
-        slider.setMaximum(maximum)
-        slider.setValue(minimum)
-
-        if exp:
-            slider.valueChanged.connect(
-                pyqtSlot()(
-                    lambda value: label.setText(
-                        " ".join(label.text().split()[:-1]) + " " + str(2 ** value)
-                    )
-                )
-            )
-        else:
-            slider.valueChanged.connect(
-                pyqtSlot()(
-                    lambda value: label.setText(
-                        " ".join(label.text().split()[:-1])
-                        + " "
-                        + str(value * step_size)
-                    )
-                )
-            )
-
-        return label, slider
-
     @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
@@ -157,23 +125,20 @@ class TrainOptionList(QWidget):
     def start_training(self):
         if self.train_button.text() == "Start training":
             if self.load_path is None:
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(
-                    self,
-                    "Error",
-                    "No dataset provided. Please select the desired path.",
-                )
+                self.warn("No dataset provided. Please select the desired path.")
                 return
 
             if self.save_path is None:
-                warning_screen = QMessageBox()
-                warning_screen.setFixedSize(500, 200)
-                warning_screen.critical(self, "Error", "No save path provided.")
+                self.warn("No save path provided.")
                 return
 
             self.train_button.setText("Stop")
-            self.train_button.setStyleSheet("background-color: red;")
+            self.train_button.setStyleSheet(
+                """
+                :!hover{background-color: #c00000;}
+                :hover{background-color: #ff0000;}
+                """
+            )
 
             cmd = (
                 f"python train.py {'--auto_scale_batch_size power' if self.batch_size_checkbox.isChecked() else ''} "

@@ -36,6 +36,7 @@ class TrainDisplay(QWidget):
         self.thread = None
         self.worker = None
         self.server_running = False
+        self.server_pid = None
 
         self.browser_button = QPushButton("Show details in browser", self)
         self.browser_button.clicked.connect(self.open_browser)
@@ -57,8 +58,8 @@ class TrainDisplay(QWidget):
         if self.thread is not None:
             self.thread.quit()
             self.thread.wait()
-        if self.worker is not None and self.worker.popen is not None:
-            self.worker.popen.send_signal(signal.SIGTERM)
+        if self.server_pid is not None:
+            os.kill(self.server_pid, signal.CTRL_C_EVENT)
 
     @pyqtSlot()
     def open_browser(self):
@@ -76,6 +77,8 @@ class TrainDisplay(QWidget):
 
     @pyqtSlot()
     def clean_up_worker(self):
+        if self.worker.popen is not None:
+            self.server_pid = self.worker.popen.pid
         self.worker = None
         self.thread.quit()
         self.thread.wait()

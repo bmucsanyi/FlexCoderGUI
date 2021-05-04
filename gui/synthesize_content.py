@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Optional
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -51,5 +52,6 @@ class SynthesizeContent(QWidget):
     def populate_image_display(self):
         self.progress_bar.setValue(100)
 
-        with open("images.json") as f:
+        with open(".images.json") as f:
             self.synthesize_display.load_images(json.load(f))
+        os.remove(".images.json")

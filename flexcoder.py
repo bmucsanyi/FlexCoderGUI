@@ -282,11 +282,7 @@ def create_solution_comp(solution: list[SearchNode], inp: tuple) -> Composition:
 
 
 def beam_search(
-    inp: tuple,
-    beam_size: int,
-    max_length,
-    target: OutputType,
-    worker
+    inp: tuple, beam_size: int, max_length, target: OutputType, worker
 ) -> Optional[SearchNode]:
     def transform_target(target):
         # This just makes the api a bit more user friendly

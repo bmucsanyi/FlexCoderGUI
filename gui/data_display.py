@@ -3,14 +3,14 @@ from typing import Optional
 import matplotlib
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
-from src.grammar import DEFINITIONS, ABBREVATION_DICT
+from src.grammar import DEFINITIONS, ABBREVIATION_DICT
 
 matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 
-MOCK_DICT = {ABBREVATION_DICT[func_name]: 0 for func_name in DEFINITIONS[:-1]}
+MOCK_DICT = {ABBREVIATION_DICT[func_name]: 0 for func_name in DEFINITIONS[:-1]}
 
 
 class MplCanvas(FigureCanvasQTAgg):

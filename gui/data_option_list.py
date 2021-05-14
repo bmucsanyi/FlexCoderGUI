@@ -84,21 +84,8 @@ class DataOptionList(BaseOptionList):
 
     def start_generating(self):
         if self.generate_button.text() == "Generate":
-            num_comps_string = self.num_comps_line_edit.text()
-            if not num_comps_string.isnumeric() or num_comps_string == "0":
-                self.warn(
-                    "The number of compositions is expected to be a positive integer value."
-                )
-                return
-
-            if self.filename is None:
-                self.warn("No filename provided. Please select the desired path.")
-                return
-
-            if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
-                self.warn(
-                    "Number of unique inputs cannot be larger than the number of inputs."
-                )
+            num_comps_string = self.inspect_generating_args()
+            if num_comps_string is None:
                 return
 
             self.generate_button.setText("Stop")
@@ -119,17 +106,30 @@ class DataOptionList(BaseOptionList):
                 self.num_samples_per_comp_slider.value(),
                 self.is_test_checkbox.isChecked(),
             )
+            self.start_worker(args)
 
-            self.worker = DataWorker(args)
-            self.thread = QThread()
-            self.worker.moveToThread(self.thread)
-            self.worker.bar_advanced.connect(self.update_bar)
-            self.worker.finished.connect(self.finish_generating)
-            self.thread.start()
-            self.worker.start_signal.emit()
-            self.started_generating.emit()
         else:
             self.worker.shutdown = True
+
+    def inspect_generating_args(self) -> Optional[str]:
+        num_comps_string = self.num_comps_line_edit.text()
+        if not num_comps_string.isnumeric() or num_comps_string == "0":
+            self.warn(
+                "The number of compositions is expected to be a positive integer value."
+            )
+            return None
+
+        if self.filename is None:
+            self.warn("No filename provided. Please select the desired path.")
+            return None
+
+        if self.num_unique_inputs_slider.value() > self.num_inputs_slider.value():
+            self.warn(
+                "Number of unique inputs cannot be larger than the number of inputs."
+            )
+            return None
+
+        return num_comps_string
 
     @pyqtSlot(bool)
     def finish_generating(self, generated: bool):
@@ -152,3 +152,13 @@ class DataOptionList(BaseOptionList):
         )[0]
         if not self.filename:
             self.filename = None
+
+    def start_worker(self, args):
+        self.worker = DataWorker(args)
+        self.thread = QThread()
+        self.worker.moveToThread(self.thread)
+        self.worker.bar_advanced.connect(self.update_bar)
+        self.worker.finished.connect(self.finish_generating)
+        self.thread.start()
+        self.worker.start_signal.emit()
+        self.started_generating.emit()

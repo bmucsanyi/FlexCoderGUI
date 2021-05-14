@@ -147,14 +147,8 @@ class TrainOptionList(BaseOptionList):
                 f"--batch_size {2**self.batch_size_slider.value()} --patience {self.patience_slider.value()}"
             )
 
-            self.worker = TrainWorker(cmd)
-            self.thread = QThread()
-            self.worker.moveToThread(self.thread)
-            self.worker.can_write.connect(self.pass_string)
-            self.worker.finished.connect(self.reactivate_button)
-            self.thread.start()
-            self.worker.start_signal.emit()
-            self.started_training.emit()
+            self.start_worker(cmd)
+
         else:
             if self.worker.popen is not None:
                 self.worker.popen.send_signal(signal.SIGTERM)
@@ -180,6 +174,16 @@ class TrainOptionList(BaseOptionList):
             self.batch_size_slider.setEnabled(False)
         else:
             self.batch_size_slider.setEnabled(True)
+
+    def start_worker(self, cmd):
+        self.worker = TrainWorker(cmd)
+        self.thread = QThread()
+        self.worker.moveToThread(self.thread)
+        self.worker.can_write.connect(self.pass_string)
+        self.worker.finished.connect(self.reactivate_button)
+        self.thread.start()
+        self.worker.start_signal.emit()
+        self.started_training.emit()
 
     def __del__(self):
         if self.worker is not None and self.worker.sub_pid is not None:

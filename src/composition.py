@@ -47,6 +47,8 @@ class UnreachableCodeError(Exception):
 
 @dataclass
 class Composition:
+    """Representation for tree-structured compositions."""
+
     _root_function: Function
     _children: list["Composition"] = field(default_factory=list)
     _parent: Optional["Composition"] = None
@@ -308,7 +310,7 @@ class Composition:
 
     def copy_with_new_ids(self) -> "Composition":
         """Provides a recursive copy of ``self`` with different ids than the
-        ones in ``self``.
+        ones in ``self``. The method does not take copies into consideration.
         Returns:
             A new Composition object with the same subcompositions and inputs
               as ``self`` has, but new ids.
@@ -318,12 +320,14 @@ class Composition:
         return new_comp
 
     def postorder_iterate(self) -> Generator["Composition", None, None]:
+        """Provides a postorder generator for ``self``."""
         for child in self.children:
             yield from child.postorder_iterate()
 
         yield self
 
     def fill_input_by_id(self, new_data: InputType, input_id: int) -> None:
+        """Fills the input(s) with id ``input_id``."""
         for leaf in self.leaves:
             for inp in leaf._root_function.inputs:
                 if inp.id == input_id:
@@ -516,141 +520,173 @@ class Composition:
     ) -> "Composition":
         root: Function = branch._root_function
         if function.definition is take and root.definition is take:
-            min_param = min(function.number, root.number)
-            root.number = min_param
-            return branch
+            return cls._branch_compressor_take(function, branch)
         elif function.definition is drop and root.definition is drop:
-            remaining_space = grammar.MAX_NUM - root.number
-            if function.number > remaining_space:
-                diff = function.number - remaining_space
-                function.number = diff
-                root.number = grammar.MAX_NUM
-            else:
-                root.number += function.number
-                return branch
+            return cls._branch_compressor_drop(function, branch)
         elif function.definition is map_func and root.definition is map_func:
-            if function.operator == root.operator:
-                if function.operator in {
-                    operator.mul,
-                    operator.add,
-                } and function.operator(root.number, function.number) in range(
-                    0, grammar.MAX_NUM + 1
-                ):
-                    # Map: *, + merge and only the root function remains
-                    # 0 is for when we are multiplying by 0
-                    root.number = function.operator(function.number, root.number)
-                    return branch
-                elif (
-                    function.operator == operator.sub
-                    and function.number + root.number in range(1, grammar.MAX_NUM)
-                ):
-                    # Map: - merge and only the root function remains
-                    root.number += function.number
-                    return branch
-                else:
-                    if function.operator in {operator.add, operator.sub}:
-                        remaining_space = grammar.MAX_NUM - root.number
-                        function.number -= remaining_space
-                        root.number = grammar.MAX_NUM
-                    elif function.operator == operator.mul:
-                        result = function.number * root.number
-                        function.number, root.number = utils.calculate_distribution(
-                            result
-                        )
-            elif (function.operator, root.operator) in OPERATOR_COMBINATIONS:
-                # Map: +, - merge
-                if function.number != root.number:
-                    bigger = max(function, root, key=lambda x: x.number)
-                    other = root if bigger is function else function
-                    root.number = bigger.number - other.number
-                    root.operator = bigger.operator
+            return cls._branch_compressor_map(function, branch)
+        elif function.definition is sort:
+            return cls._branch_compressor_sort(function, branch)
+        elif function.definition is reverse_func:
+            return cls._branch_compressor_reverse(function, branch)
+        else:
+            return cls._merge_branch(function, branch)
 
+    @classmethod
+    def _branch_compressor_take(
+        cls, function: Function, branch: "Composition"
+    ) -> "Composition":
+        root: Function = branch._root_function
+        min_param = min(function.number, root.number)
+        root.number = min_param
+        return branch
+
+    @classmethod
+    def _branch_compressor_drop(
+        cls, function: Function, branch: "Composition"
+    ) -> "Composition":
+        root: Function = branch._root_function
+        remaining_space = grammar.MAX_NUM - root.number
+        if function.number > remaining_space:
+            diff = function.number - remaining_space
+            function.number = diff
+            root.number = grammar.MAX_NUM
+            return cls._merge_branch(function, branch)
+        else:
+            root.number += function.number
+            return branch
+
+    @classmethod
+    def _branch_compressor_map(
+        cls, function: Function, branch: "Composition"
+    ) -> "Composition":
+        root: Function = branch._root_function
+        if function.operator == root.operator:
+            if function.operator in {operator.mul, operator.add,} and function.operator(
+                root.number, function.number
+            ) in range(0, grammar.MAX_NUM + 1):
+                # Map: *, + merge and only the root function remains
+                # 0 is for when we are multiplying by 0
+                root.number = function.operator(function.number, root.number)
                 return branch
             elif (
-                root.operator is operator.mul
-                and function.operator is operator.floordiv
-                and root.number % function.number == 0
+                function.operator == operator.sub
+                and function.number + root.number in range(1, grammar.MAX_NUM)
             ):
-                # Map: *, // merge, but only in this order
-
-                if root.number // function.number != 1:
-                    # Else don't change the number
-                    root.number //= function.number
-
+                # Map: - merge and only the root function remains
+                root.number += function.number
                 return branch
-        elif function.definition is sort:
-            node_funcs = set(node._root_function.definition for node in branch)
-            if all(func is not sort for func in node_funcs):
-                # If there are no sorts there is nothing to do
+            else:
+                if function.operator in {operator.add, operator.sub}:
+                    remaining_space = grammar.MAX_NUM - root.number
+                    function.number -= remaining_space
+                    root.number = grammar.MAX_NUM
+                elif function.operator == operator.mul:
+                    result = function.number * root.number
+                    function.number, root.number = utils.calculate_distribution(result)
                 return cls._merge_branch(function, branch)
+        elif (function.operator, root.operator) in OPERATOR_COMBINATIONS:
+            # Map: +, - merge
+            if function.number != root.number:
+                bigger = max(function, root, key=lambda x: x.number)
+                other = root if bigger is function else function
+                root.number = bigger.number - other.number
+                root.operator = bigger.operator
 
-            if branch._root_function.definition is reverse_func:
-                return branch
+            return branch
+        elif (
+            root.operator is operator.mul
+            and function.operator is operator.floordiv
+            and root.number % function.number == 0
+        ):
+            # Map: *, // merge, but only in this order
 
-            for node in branch:
-                if node._root_function.definition is not sort:
-                    continue
+            if root.number // function.number != 1:
+                # Else don't change the number
+                root.number //= function.number
 
-                path = Composition._path_to(node)
-                funcs_in_path = [p._root_function for p in path]
-
-                # Filter out explicit sort and reverse stacking
-                if (
-                    len(funcs_in_path) >= 2
-                    and funcs_in_path[0].definition is reverse_func
-                    and funcs_in_path[1].definition is sort
-                ):
-                    return branch
-
-                # Remove the last element as it's ``node``
-                funcs_in_path = funcs_in_path[:-1]
-
-                # This is true if any functions in the path alter the ordering of the list elements
-                if any(func.is_order_altering() for func in funcs_in_path):
-                    return cls._merge_branch(function, branch)
-
-                # If we ever reach this the function should not be added
-                return branch
-
-            # No problems -> can merge
-            return cls._merge_branch(function, branch)
-        elif function.definition is reverse_func:
-            node_funcs = set(node._root_function.definition for node in branch)
-            if all(func is not reverse_func for func in node_funcs):
-                # If there are no reverse funcs there is nothing to do
-                return cls._merge_branch(function, branch)
-
-            for node in branch:
-                if node._root_function.definition is not reverse_func:
-                    continue
-
-                path = Composition._path_to(node)
-                funcs_in_path = [p._root_function for p in path]
-
-                # Filter out explicit sort and reverse stacking
-                if (
-                    len(funcs_in_path) >= 2
-                    and funcs_in_path[0].definition is sort
-                    and funcs_in_path[1].definition is reverse_func
-                ):
-                    return branch
-
-                # Remove the last element as it's ``node``
-                funcs_in_path = funcs_in_path[:-1]
-
-                # This is true if any functions in the path alter the ordering of the list elements
-                if branch._root_function.definition is not reverse_func and any(
-                    func.is_order_altering() and func.definition is not reverse_func
-                    for func in funcs_in_path
-                ):
-                    return cls._merge_branch(function, branch)
-
-                # if we ever reach this the function should not be added
-                return branch
-
-            # No problems -> can merge
+            return branch
+        else:
             return cls._merge_branch(function, branch)
 
+    @classmethod
+    def _branch_compressor_sort(
+        cls, function: Function, branch: "Composition"
+    ) -> "Composition":
+        node_funcs = set(node._root_function.definition for node in branch)
+        if all(func is not sort for func in node_funcs):
+            # If there are no sorts there is nothing to do
+            return cls._merge_branch(function, branch)
+
+        if branch._root_function.definition is reverse_func:
+            return branch
+
+        for node in branch:
+            if node._root_function.definition is not sort:
+                continue
+
+            path = Composition._path_to(node)
+            funcs_in_path = [p._root_function for p in path]
+
+            # Filter out explicit sort and reverse stacking
+            if (
+                len(funcs_in_path) >= 2
+                and funcs_in_path[0].definition is reverse_func
+                and funcs_in_path[1].definition is sort
+            ):
+                return branch
+
+            # Remove the last element as it's ``node``
+            funcs_in_path = funcs_in_path[:-1]
+
+            # This is true if any functions in the path alter the ordering of the list elements
+            if any(func.is_order_altering() for func in funcs_in_path):
+                return cls._merge_branch(function, branch)
+
+            # If we ever reach this the function should not be added
+            return branch
+
+        # No problems -> can merge
+        return cls._merge_branch(function, branch)
+
+    @classmethod
+    def _branch_compressor_reverse(
+        cls, function: Function, branch: "Composition"
+    ) -> "Composition":
+        node_funcs = set(node._root_function.definition for node in branch)
+        if all(func is not reverse_func for func in node_funcs):
+            # If there are no reverse funcs there is nothing to do
+            return cls._merge_branch(function, branch)
+
+        for node in branch:
+            if node._root_function.definition is not reverse_func:
+                continue
+
+            path = Composition._path_to(node)
+            funcs_in_path = [p._root_function for p in path]
+
+            # Filter out explicit sort and reverse stacking
+            if (
+                len(funcs_in_path) >= 2
+                and funcs_in_path[0].definition is sort
+                and funcs_in_path[1].definition is reverse_func
+            ):
+                return branch
+
+            # Remove the last element as it's ``node``
+            funcs_in_path = funcs_in_path[:-1]
+
+            # This is true if any functions in the path alter the ordering of the list elements
+            if branch._root_function.definition is not reverse_func and any(
+                func.is_order_altering() and func.definition is not reverse_func
+                for func in funcs_in_path
+            ):
+                return cls._merge_branch(function, branch)
+
+            # if we ever reach this the function should not be added
+            return branch
+
+        # No problems -> can merge
         return cls._merge_branch(function, branch)
 
     @staticmethod

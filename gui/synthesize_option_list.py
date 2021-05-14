@@ -251,7 +251,7 @@ class SynthesizeOptionList(BaseOptionList):
     @pyqtSlot()
     def model_clicked(self):
         self.model_filename = QFileDialog.getOpenFileName(
-            self, "Select model", "..", "CKPT (*.ckpt)"
+            self, "Select model", ".", "CKPT (*.ckpt)"
         )[0]
         if not self.model_filename:
             self.model_filename = None
@@ -259,7 +259,7 @@ class SynthesizeOptionList(BaseOptionList):
     @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
-            self, "Select test dataset", "..", "DAT (*.dat)"
+            self, "Select test dataset", ".", "DAT (*.dat)"
         )[0]
         if not self.load_path:
             self.load_path = None
@@ -267,7 +267,7 @@ class SynthesizeOptionList(BaseOptionList):
     @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
-            self, "Select path", "..", QFileDialog.ShowDirsOnly
+            self, "Select path", ".", QFileDialog.ShowDirsOnly
         )
         if not self.save_path:
             self.save_path = None

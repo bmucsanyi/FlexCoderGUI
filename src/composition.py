@@ -148,6 +148,7 @@ class Composition:
         return self._preorder_num_inputs(self)
 
     def is_more_io(self) -> bool:
+        """Returns whether ``self`` has more input-output examples."""
         for node in self:
             if (
                 not node.children
@@ -312,7 +313,6 @@ class Composition:
             A new Composition object with the same subcompositions and inputs
               as ``self`` has, but new ids.
         """
-        # TODO: handle copies
         new_comp = self._preorder_deepcopy(comp=self, parent=None, new_ids=True)
 
         return new_comp
@@ -445,7 +445,6 @@ class Composition:
 
     @classmethod
     def _from_branch(cls, function: Function, branch: "Composition") -> "Composition":
-        # TODO: fix sort + sort or sort + reverse or sort + map + sort
         if function.definition in (drop, take) and branch._first_map() is not None:
             return cls._merge_function_inside(function, branch)
         elif function.definition in (drop, take, map_func, sort, reverse_func):
@@ -785,7 +784,7 @@ class Composition:
                 except IndexError:
                     raise UnevaluableCompositionError(
                         "Not all required arrays are provided."
-                    )  # from None
+                    )
 
                 if root.inputs:
                     return root.eval([input_1])
@@ -795,7 +794,7 @@ class Composition:
                     except IndexError:
                         raise UnevaluableCompositionError(
                             "Not all required arrays are provided."
-                        )  # from None
+                        )
 
                     return root.eval([input_1, input_2])
             else:
@@ -804,7 +803,7 @@ class Composition:
                 except IndexError:
                     raise UnevaluableCompositionError(
                         "Not all required arrays are provided."
-                    )  # from None
+                    )
 
                 return root.eval([input_])
         else:
@@ -824,7 +823,7 @@ class Composition:
                 except IndexError:
                     raise UnevaluableCompositionError(
                         "Not all required arrays are provided."
-                    )  # from None
+                    )
 
                 if root.inputs:
                     return root.eval_with_indices([input_1], id_1=id_1)
@@ -836,7 +835,7 @@ class Composition:
                     except IndexError:
                         raise UnevaluableCompositionError(
                             "Not all required arrays are provided."
-                        )  # from None
+                        )
 
                     return root.eval_with_indices(
                         [input_1, input_2], id_1=id_1, id_2=id_2
@@ -849,7 +848,7 @@ class Composition:
                 except IndexError:
                     raise UnevaluableCompositionError(
                         "Not all required arrays are provided."
-                    )  # from None
+                    )
 
                 return root.eval_with_indices([input_], id_1=id_)
         else:
@@ -1538,11 +1537,6 @@ class Composition:
                     return None
                 else:
                     return result
-
-            with open("fucked.pkl", "wb") as f:
-                import dill
-
-                dill.dump(self, f)
 
             raise UnreachableCodeError
         else:

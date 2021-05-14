@@ -60,7 +60,7 @@ def main() -> None:
         args,
         callbacks=[
             EarlyStopping("val_loss", patience=args.patience),
-            ModelCheckpoint(dirpath=args.save_path, save_top_k=1, monitor="val_loss",),
+            ModelCheckpoint(dirpath=args.save_path, save_top_k=1, monitor="val_loss"),
         ],
         progress_bar_refresh_rate=0,
     )

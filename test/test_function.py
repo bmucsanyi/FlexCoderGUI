@@ -1,16 +1,16 @@
 import copy
 import operator
+import random
 
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from src.composition import Composition
+from src.composition import Composition, UnimprovableInputError
 from src.func_impl import *
 from src.function import REVERSE_OPERATOR_DICT, Function, Input
 from src.grammar import ALL_FUNCTION_STRINGS, GRAMMAR, get_parser
 
-
-# from src.utils import visualize
+import config
 
 
 class TestFunction:
@@ -118,7 +118,12 @@ class TestComposition:
         )
 
         self.composition = Composition.from_composition(sum_, zip_with_2_node)
-        # visualize(self.composition, "test_comp.png")
+
+        for leaf in self.composition.leaves:
+            if leaf.root_function.definition is zip_with and leaf.children == []:
+                leaf.root_function.inputs = [Input(), Input()]
+            else:
+                leaf.root_function.inputs = [Input()]
 
         map_func__ = Function.from_dict(
             {"function": "map_func", "operator": "*", "number": "2"}
@@ -146,7 +151,12 @@ class TestComposition:
         self.composition2 = Composition.from_composition(
             zip_with_2__, map_node__, filter_node__
         )
-        # visualize(self.composition2, "test_comp2.png")
+
+        for leaf in self.composition2.leaves:
+            if leaf.root_function.definition is zip_with and leaf.children == []:
+                leaf.root_function.inputs = [Input(), Input()]
+            else:
+                leaf.root_function.inputs = [Input()]
 
     @settings(deadline=None, max_examples=10)
     @given(
@@ -254,7 +264,61 @@ class TestComposition:
             copy_comp.copy_ids
         )
 
-        # visualize(copy_comp, "new_comp.png")
+    def test_copy_with_new_ids(self):
+        comp = self.composition
+        comp_copy = comp.copy_with_new_ids()
+
+        for c, cc in zip(comp, comp_copy):
+            assert c.root_function.definition == cc.root_function.definition
+            assert c.root_function.number == cc.root_function.number
+            assert c.root_function.operator == cc.root_function.operator
+
+            for inp, c_inp in zip(c.root_function.inputs, cc.root_function.inputs):
+                assert inp.id != c_inp.id
+                assert inp._data == c_inp._data
+
+            assert len(c.children) == len(cc.children)
+            assert all(
+                c_child.id != cc_child
+                for c_child, cc_child in zip(c.children, cc.children)
+            )
+
+            assert c.id != cc.id
+
+    def test_fill_input_by_id_and_fill_random_inputs(self):
+        all_comps = (self.composition, self.composition2)
+        print(self.composition.leaves)
+        for comp in all_comps:
+            inputs = comp.leaf_inputs
+
+            assert all(inp.data is None for inp in inputs)
+
+            input_id = random.choice(inputs).id
+            new_data = [1, 1, 1, 1]
+            comp.fill_input_by_id(new_data, input_id)
+
+            for inp in inputs:
+                if inp.id == input_id:
+                    assert inp.data == new_data
+
+        def check_criteria(data=list[int]) -> bool:
+            len_in_range = (
+                config.INPUT_LENGTH_LOB <= len(data) <= config.INPUT_LENGTH_HIB
+            )
+            elements_in_range = all(
+                config.INPUT_LOB <= elem <= config.INPUT_HIB for elem in data
+            )
+            return len_in_range and elements_in_range
+
+        for comp in all_comps:
+            try:
+                composition = Composition.fill_random_inputs(
+                    comp, 1, check_output_boundary=True
+                )
+            except UnimprovableInputError:
+                continue
+            for inp in composition.leaf_inputs:
+                assert check_criteria(inp.data)
 
 
 def main():
@@ -272,6 +336,7 @@ def main():
     tc.test_mul_floordiv_contractions()
     tc.test_add_sub_contraction()
     tc.test_composition_merge()
+    tc.test_copy_with_new_ids()
 
 
 if __name__ == "__main__":

@@ -40,7 +40,6 @@ class DataContent(QWidget):
     @pyqtSlot()
     def reset_diagram(self):
         self.started_generating.emit()
-        # self.data_display.populate_diagram()  # TODO!!!
 
     @pyqtSlot(int)
     def update_bar(self, value: int):

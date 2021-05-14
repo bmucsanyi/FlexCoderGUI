@@ -18,13 +18,11 @@ from src.grammar import (
 )
 from src.model import FlexNet
 
-# from src.cache import cache
-
 _FUNC_DICT = {**FUNC_DICT, "copy_state_tuple": copy_state_tuple}
 
 _ALL_FUNCTIONS = ALL_FUNCTIONS + [
     Function(definition=copy_state_tuple, operator=None, number=None)
-]  # TODO: move copy
+]
 
 DEFINITION_INDEX = {
     _FUNC_DICT[definition]: ind for ind, definition in enumerate(DEFINITIONS)
@@ -41,31 +39,13 @@ BOOL_LAMBDA_OPERATORS_INDEX = {
 }
 TAKE_DROP_NUMBERS_INDEX = {int(num): ind for ind, num in enumerate(TAKE_DROP_NUMBERS)}
 
-# weights appear in the order of the extractor functions
-weight_dict = {
-    max: (1,),  # definition
-    min: (1,),  # definition
-    sum: (1,),  # definition
-    length: (1,),  # definition
-    sort: (0.8, 0.2),  # definition, index
-    take: (0.6, 0.2, 0.2),  # definition, index, number
-    drop: (0.6, 0.2, 0.2),  # definition, index, number
-    reverse_func: (0.8, 0.2),  # definition, index
-    map_func: (0.5, 0.2, 0.15, 0.15),  # definition, index, operator, number
-    filter_func: (0.5, 0.2, 0.15, 0.15),  # definition, index, operator, number
-    zip_with: (0.5, 0.2, 0.2, 0.1),  # definition, index, index, operator
-    copy_state_tuple: (0.8, 0.2),  # definition, index
-}
-
 
 class ModelFacade:
     def __init__(self, weights) -> None:
         self.model = FlexNet.load_from_checkpoint(weights)
 
-    # @cache.cache()
     def predict(self, state_tuple, target):
-        inp = [x[0][0] for x in state_tuple]  # This might only work for single io
-        # print(inp)
+        inp = [x[0][0] for x in state_tuple]
         inp, inp_lenghts = FlexDataset.to_processed_tensor(inp, is_input=True)
         inp_lenghts = [[x] for x in inp_lenghts]
         inp = inp.unsqueeze(0)
@@ -73,7 +53,7 @@ class ModelFacade:
         out, out_lenghts = FlexDataset.to_processed_tensor(target, is_input=False)
         out = out.unsqueeze(0)
 
-        if any(x[0] == 0 for x in inp_lenghts):  # TODO ez is lehet fos
+        if any(x[0] == 0 for x in inp_lenghts):
             return torch.zeros(7, 17)
 
         with torch.no_grad():
@@ -88,7 +68,6 @@ class ModelFacade:
             torch.softmax(o, dim=-1)[0] if ind != 1 else torch.sigmoid(o)[0]
             for ind, o in enumerate(output)
         ]
-        # return [torch.sigmoid(o)[0] for o in output]
 
 
 @dataclass
@@ -153,17 +132,12 @@ class RankAssigner:
             res for func in self.extractors if (res := func(node, weights)) is not None
         ]
 
-        return self.aggregator_func(node, individual_weights)
+        return self.aggregator_func(individual_weights)
 
 
-def aggregator(node: SearchNode, predicted_weights):
-    func = node.function.definition
-    weightings = weight_dict[func]
-
-    nom = sum(np.log(x) * w for x, w in zip(predicted_weights, weightings))
-    denom = sum(weightings)
-
-    return np.exp(nom / denom)
+def aggregator(predicted_weights):
+    nom = sum(np.log(x) for x in predicted_weights)
+    return np.exp(nom)
 
 
 wa = RankAssigner(aggregator)
@@ -193,9 +167,7 @@ def generate_children_non_zipwith(function: Function, parent: SearchNode, weight
 
 def generate_children_zipwith(function: Function, parent: SearchNode, weights):
     if function.operator is operator.sub:
-        iterator = itertools.permutations(
-            range(len(parent.state_tuple)), 2
-        )  # TODO: Vágás után kiterjesztés előtt bs-ben
+        iterator = itertools.permutations(range(len(parent.state_tuple)), 2)
     else:
         iterator = itertools.combinations(range(len(parent.state_tuple)), 2)
 
@@ -217,8 +189,6 @@ def generate_children_zipwith(function: Function, parent: SearchNode, weights):
 def generate_children(parent: SearchNode, target):
     weights = model.predict(parent.state_tuple, target)
     for function in _ALL_FUNCTIONS:
-        # TODO: itt lehetne szűrni a lehetséges függvényeket az elvárt output típus alapján.
-        #  Pl ha tömb akkor fölösek a max,min és barátaik
         if function.definition is not zip_with:
             yield from generate_children_non_zipwith(function, parent, weights)
         elif function.definition is zip_with:
@@ -233,7 +203,6 @@ counter = 0
 def write_path(node: SearchNode, solution):
     if node.function is not None:
         solution.append(node)
-        # print(str(node.function), node.indices)
 
     if node.parent is not None:
         write_path(node.parent, solution)
@@ -285,7 +254,6 @@ def beam_search(
     inp: tuple, beam_size: int, max_length, target: OutputType, worker
 ) -> Optional[SearchNode]:
     def transform_target(target):
-        # This just makes the api a bit more user friendly
         val = (
             isinstance(target, int)
             or isinstance(target, list)
@@ -307,13 +275,6 @@ def beam_search(
 
         if isinstance(transformed_target[0], list):
             min_list_lengths = [len(l) for l in transformed_target]
-            # print("-----")
-            # print(a)
-            # print([x[0] for x in node.state_tuple])
-            # print([list(itertools.chain.from_iterable(x)) for x in node.state_tuple])
-
-            # print([[(len(y), le) for y, le in zip(x[0], a)] for x in node.state_tuple])
-            # If for any list is shorter then it has to be for the target -> cant be solved -> leaf
             res = any(
                 [
                     any(
@@ -332,8 +293,6 @@ def beam_search(
         return False
 
     def is_solution(node: SearchNode) -> bool:
-        # print(node.state_tuple[0][0])
-        # TODO: Allow one length arrays and number to be solutions
         return len(node.state_tuple) == 1 and (
             node.state_tuple[0][0] == transformed_target
             or node.state_tuple[0][0][0] == transformed_target[0][0]
@@ -381,47 +340,3 @@ def beam_search(
                     return
 
     return make_stat(None, None, inp)
-
-
-if __name__ == "__main__":
-    state_tuple = (
-        [
-            [
-                [
-                    -204,
-                    -43,
-                    -7,
-                    9,
-                    -35,
-                    6,
-                    -7,
-                    5,
-                    -153,
-                    -71,
-                    -52,
-                    -7,
-                    -9,
-                    -168,
-                    -7,
-                    -129,
-                    9,
-                    -8,
-                ]
-            ]
-        ],
-        [[[-2, -4, -7, 9, 3, 6, -7, 5, -2, -2, -3, -7, -9, -1, -7, 2, 9, -8]]],
-    )
-    target = [755]
-
-    res = model.predict(state_tuple, [target])
-    for ind, r in enumerate(res):
-        print(ind, r)
-
-    res = beam_search(state_tuple, 150, 8, target=[target])
-
-    if res is None:
-        print("FUCK")
-    else:
-        write_path(res)
-        print(res.state_tuple)
-    print(counter)

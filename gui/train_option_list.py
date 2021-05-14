@@ -108,7 +108,7 @@ class TrainOptionList(BaseOptionList):
     @pyqtSlot()
     def data_clicked(self):
         self.load_path = QFileDialog.getOpenFileName(
-            self, "Select dataset", "..", "DAT (*.dat)"
+            self, "Select dataset", ".", "DAT (*.dat)"
         )[0]
         if not self.load_path:
             self.load_path = None
@@ -116,7 +116,7 @@ class TrainOptionList(BaseOptionList):
     @pyqtSlot()
     def path_clicked(self):
         self.save_path = QFileDialog.getExistingDirectory(
-            self, "Select path", "..", QFileDialog.ShowDirsOnly
+            self, "Select path", ".", QFileDialog.ShowDirsOnly
         )
         if not self.save_path:
             self.save_path = None

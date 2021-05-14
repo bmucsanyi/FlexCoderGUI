@@ -1,3 +1,4 @@
+import os
 import shlex
 import signal
 import subprocess
@@ -24,6 +25,7 @@ class TensorBoardWorker(QObject):
     def process(self):
         if not self.server_running:
             self.popen = subprocess.Popen(shlex.split(self.cmd))
+        QThread.sleep(2)
         webbrowser.open("http://localhost:6006")
         self.finished.emit()
 

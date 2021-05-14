@@ -148,7 +148,7 @@ class DataOptionList(BaseOptionList):
     @pyqtSlot()
     def path_clicked(self):
         self.filename = QFileDialog.getSaveFileName(
-            self, "Select path", "..", "DAT (*.dat)"
+            self, "Select path", ".", "DAT (*.dat)"
         )[0]
         if not self.filename:
             self.filename = None

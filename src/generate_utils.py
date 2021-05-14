@@ -13,7 +13,6 @@ from typing import Optional, Union, Generator
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 
-# import src.utils
 from src.composition import Composition, UnimprovableInputError
 from src.func_impl import *
 from src.function import Function, ALL_FUNCTIONS, BUCKETS
@@ -463,7 +462,7 @@ def copy_combs_filter(
                     if inp.copied_from is not None:
                         copy_inp = InputPlaceholder(copied_from=inp.copied_from)
                         inp.copied_from.occurrence += 1
-                    else:  # inp is unique , None
+                    else:  # inp is unique, None
                         copy_inp = InputPlaceholder(copied_from=inp)
                         inp.occurrence += 1
                     input_placeholders.append(copy_inp)
@@ -734,8 +733,7 @@ def compositions_from_combinations(
                         if curr_lens[0] != 0:
                             # noinspection PyUnboundLocalVariable
                             top_comp.extend_leaves(
-                                bottom_comps,
-                                [None] * len(bottom_comps),  # TODO: not None
+                                bottom_comps, [None] * len(bottom_comps),
                             )
 
                         try:
@@ -853,18 +851,3 @@ class DataWorker(QObject):
         if self.shutdown:
             os.remove(self.args.filename)
         self.finished.emit(not self.shutdown)
-
-
-if __name__ == "__main__":
-    args_ = Arguments(
-        number=2000,
-        filename="alma.txt",
-        functions=2,
-        io=1,
-        inputs=1,
-        unique_inputs=1,
-        num_samples_per_comp=1,
-        is_test=True,
-    )
-    worker = DataWorker(args_)
-    worker.process()
